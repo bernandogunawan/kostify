@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['role']      = 'admin';
             header('Location: /kostify/pages/admin_dashboard.php'); exit;
         } else {
-            $error = 'Invalid email or password.';
+            $error = 'Invalid email or password';
         }
     } else {
         $result = mysqli_query($conn, "SELECT * FROM tenant WHERE email = '$email'");
