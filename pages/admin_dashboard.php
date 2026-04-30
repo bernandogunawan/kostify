@@ -46,13 +46,13 @@ $payments = mysqli_query($conn, "
     <div class="sidebar-logo">KOSTIFY <span>ADMIN PANEL</span></div>
     <nav class="nav">
         <a href="admin_dashboard.php" class="active"><span class="icon">🏠</span> Dashboard</a>
-        <a href="#"><span class="icon">🏢</span> Buildings</a>
-        <a href="#"><span class="icon">🚪</span> Rooms</a>
-        <a href="#"><span class="icon">👥</span> Tenants</a>
-        <a href="#"><span class="icon">📋</span> Bookings</a>
+        <a href="buildings.php"><span class="icon">🏢</span> Buildings</a>
+        <a href="rooms.php"><span class="icon">🚪</span> Rooms</a>
+        <a href="tenants.php"><span class="icon">👥</span> Tenants</a>
+        <a href="bookings.php"><span class="icon">📋</span> Bookings</a>
         <a href="#"><span class="icon">💳</span> Payments</a>
         <a href="#"><span class="icon">🔧</span> Maintenance</a>
-        <a href="#"><span class="icon">👨‍💼</span> Employees</a>
+        <a href="#"><span class="icon">👨‍💼</span> Employees</a>s
     </nav>
     <div class="sidebar-bottom">
         <div class="user-info">

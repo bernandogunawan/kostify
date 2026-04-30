@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['user_id']   = $row['admin_id'];
             $_SESSION['user_name'] = $row['username'];
             $_SESSION['role']      = 'admin';
-            header('Location: /kostify/pages/admin_dashboard.php'); exit;
+            header('Location: ../pages/admin_dashboard.php'); exit;
         } else {
             $error = 'Invalid email or password';
         }
@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['user_id']   = $row['tenant_id'];
             $_SESSION['user_name'] = $row['first_name'] . ' ' . $row['last_name'];
             $_SESSION['role']      = 'tenant';
-            header('Location: /kostify/pages/tenant_dashboard.php'); exit;
+            header('Location: ../pages/tenant_dashboard.php'); exit;
         } else {
             $error = 'Invalid email or password.';
         }
