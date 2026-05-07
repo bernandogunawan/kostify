@@ -50,9 +50,9 @@ $payments = mysqli_query($conn, "
         <a href="rooms.php"><span class="icon">🚪</span> Rooms</a>
         <a href="tenants.php"><span class="icon">👥</span> Tenants</a>
         <a href="bookings.php"><span class="icon">📋</span> Bookings</a>
-        <a href="#"><span class="icon">💳</span> Payments</a>
-        <a href="#"><span class="icon">🔧</span> Maintenance</a>
-        <a href="#"><span class="icon">👨‍💼</span> Employees</a>s
+        <a href="payments.php"><span class="icon">💳</span> Payments</a>
+        <a href="maintenance.php"><span class="icon">🔧</span> Maintenance</a>
+        <a href="employees.php"><span class="icon">👨‍💼</span> Employees</a>
     </nav>
     <div class="sidebar-bottom">
         <div class="user-info">
@@ -130,7 +130,7 @@ $payments = mysqli_query($conn, "
         <div class="table-card">
             <div class="table-head">
                 <h3>Recent Bookings</h3>
-                <a href="#">View all →</a>
+                <a href="bookings.php">View all →</a>
             </div>
             <table>
                 <thead>
@@ -155,7 +155,7 @@ $payments = mysqli_query($conn, "
         <div class="table-card">
             <div class="table-head">
                 <h3>Recent Payments</h3>
-                <a href="#">View all →</a>
+                <a href="payments.php">View all →</a>
             </div>
             <table>
                 <thead>
