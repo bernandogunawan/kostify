@@ -1,0 +1,72 @@
+.maintenance-container {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+}
+
+.maintenance-header {
+    padding: 24px 30px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.maintenance-header h2 {
+    font-size: 18px;
+    color: var(--dark);
+    font-weight: 600;
+}
+
+.maintenance-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.maintenance-table th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    padding: 14px 30px;
+    text-align: left;
+    background: #FDFAF6;
+    border-bottom: 1px solid var(--border);
+}
+
+.maintenance-table td {
+    font-size: 14px;
+    color: var(--dark);
+    padding: 18px 30px;
+    border-bottom: 1px solid var(--border);
+}
+
+.maintenance-table tr:last-child td {
+    border-bottom: none;
+}
+
+.maintenance-table tr:hover td {
+    background: #faf8f5;
+}
+
+.issue-desc {
+    max-width: 350px;
+    line-height: 1.5;
+}
+
+.cost-amount {
+    font-weight: 500;
+    color: var(--rose-dark);
+}
+
+.emp-details {
+    font-size: 13px;
+}
+
+.emp-role {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+}

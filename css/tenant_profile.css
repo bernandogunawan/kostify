@@ -1,0 +1,109 @@
+.profile-container {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 30px;
+}
+
+.profile-card, .settings-card {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+}
+
+.profile-card {
+    text-align: center;
+    padding: 40px 30px;
+}
+
+.profile-avatar-large {
+    width: 120px;
+    height: 120px;
+    background: var(--rose);
+    color: #fff;
+    font-size: 48px;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    box-shadow: 0 8px 24px rgba(181,85,106,0.25);
+}
+
+.profile-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    color: var(--dark);
+    margin-bottom: 6px;
+}
+
+.profile-role {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 30px;
+}
+
+.profile-stat {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+}
+
+.profile-stat span:first-child {
+    color: var(--muted);
+}
+
+.profile-stat span:last-child {
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.settings-header {
+    padding: 24px 30px;
+    border-bottom: 1px solid var(--border);
+    background: #FDFAF6;
+}
+
+.settings-header h2 {
+    font-size: 18px;
+    color: var(--dark);
+    font-weight: 600;
+}
+
+.settings-body {
+    padding: 30px;
+}
+
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 8px;
+}
+
+.form-value {
+    font-size: 15px;
+    color: var(--dark);
+    padding: 14px 18px;
+    background: #FDFAF6;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}

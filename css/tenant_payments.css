@@ -1,0 +1,65 @@
+.payments-container {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+}
+
+.payments-header {
+    padding: 24px 30px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.payments-header h2 {
+    font-size: 18px;
+    color: var(--dark);
+    font-weight: 600;
+}
+
+.payments-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.payments-table th {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    padding: 14px 30px;
+    text-align: left;
+    background: #FDFAF6;
+    border-bottom: 1px solid var(--border);
+}
+
+.payments-table td {
+    font-size: 14px;
+    color: var(--dark);
+    padding: 18px 30px;
+    border-bottom: 1px solid var(--border);
+}
+
+.payments-table tr:last-child td {
+    border-bottom: none;
+}
+
+.payments-table tr:hover td {
+    background: #faf8f5;
+}
+
+.payment-amount {
+    font-weight: 600;
+    color: var(--rose-dark);
+}
+
+.payment-method {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 13px;
+}

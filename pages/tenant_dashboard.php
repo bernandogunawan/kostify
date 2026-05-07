@@ -50,10 +50,10 @@ $maint = mysqli_query($conn, "
     <div class="sidebar-logo">KOSTIFY <span>TENANT PORTAL</span></div>
     <nav class="nav">
         <a href="tenant_dashboard.php" class="active">🏠 Dashboard</a>
-        <a href="#">🚪 My Room</a>
-        <a href="#">💳 Payments</a>
-        <a href="#">🔧 Maintenance</a>
-        <a href="#">👤 My Profile</a>
+        <a href="tenant_room.php">🚪 My Room</a>
+        <a href="tenant_payments.php">💳 Payments</a>
+        <a href="tenant_maintenance.php">🔧 Maintenance</a>
+        <a href="tenant_profile.php">👤 My Profile</a>
     </nav>
     <div class="sidebar-bottom">
         <div class="user-info">

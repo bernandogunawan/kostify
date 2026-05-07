@@ -1,0 +1,85 @@
+.my-room-container {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.booking-section {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+}
+
+.booking-header {
+    background: var(--dark);
+    padding: 24px 30px;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.booking-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    margin-bottom: 6px;
+}
+
+.booking-header p {
+    font-size: 13px;
+    color: rgba(255,255,255,.6);
+}
+
+.booking-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+}
+
+.booking-col {
+    padding: 30px;
+}
+
+.booking-col:first-child {
+    border-right: 1px solid var(--border);
+}
+
+.detail-item {
+    margin-bottom: 20px;
+}
+
+.detail-item:last-child {
+    margin-bottom: 0;
+}
+
+.detail-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.detail-value {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.price-box {
+    background: rgba(181,85,106,.05);
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px solid rgba(181,85,106,.15);
+    margin-top: 10px;
+}
+
+.price-box .detail-label {
+    color: var(--rose-dark);
+}
+
+.price-box .detail-value {
+    font-size: 20px;
+    color: var(--rose);
+}
