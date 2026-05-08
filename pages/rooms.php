@@ -28,14 +28,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $floor       = (int)$_POST['floor'];
         $price       = (float)$_POST['price_per_month'];
         $status      = mysqli_real_escape_string($conn, $_POST['status']);
-        $facilities  = mysqli_real_escape_string($conn, $_POST['facilities'] ?? '');
-        $size        = mysqli_real_escape_string($conn, $_POST['size'] ?? '');
 
         $dup = mysqli_fetch_assoc(mysqli_query($conn, "SELECT room_id FROM room WHERE building_id=$building_id AND room_number='$room_number'"));
         if ($dup) { $error = 'Room number already exists in this building.'; goto done; }
 
-        mysqli_query($conn, "INSERT INTO room (building_id,room_number,room_type,floor,price_per_month,status,facilities,size)
-                             VALUES ($building_id,'$room_number','$room_type',$floor,$price,'$status','$facilities','$size')");
+        mysqli_query($conn, "INSERT INTO room (building_id,room_number,room_type,floor,price_per_month,status)
+                             VALUES ($building_id,'$room_number','$room_type',$floor,$price,'$status')");
         $success = 'Room added successfully.';
 
     } elseif ($action == 'edit') {
@@ -48,12 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $floor       = (int)$_POST['floor'];
         $price       = (float)$_POST['price_per_month'];
         $status      = mysqli_real_escape_string($conn, $_POST['status']);
-        $facilities  = mysqli_real_escape_string($conn, $_POST['facilities'] ?? '');
-        $size        = mysqli_real_escape_string($conn, $_POST['size'] ?? '');
 
         mysqli_query($conn, "UPDATE room SET building_id=$building_id,room_number='$room_number',
                              room_type='$room_type',floor=$floor,price_per_month=$price,
-                             status='$status',facilities='$facilities',size='$size'
+                             status='$status'
                              WHERE room_id=$id");
         $success = 'Room updated.';
 
@@ -278,7 +274,7 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
     <div class="table-card">
         <div class="table-wrap">
             <table id="roomTable">
-                <thead><tr><th>#</th><th>Room</th><th>Building</th><th>Type</th><th>Floor</th><th>Size</th><th>Price / Month</th><th>Status</th><th>Actions</th></tr></thead>
+                <thead><tr><th>#</th><th>Room</th><th>Building</th><th>Type</th><th>Floor</th><th>Price / Month</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody>
                 <?php $i=1; $has_rows=false; while ($r=mysqli_fetch_assoc($rooms)): $has_rows=true; $badge='badge-'.strtolower(str_replace(' ','',$r['status'])); ?>
                 <tr data-room="<?= strtolower($r['room_number']) ?>"
@@ -290,18 +286,17 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
                     <td><div><?= htmlspecialchars($r['building_name']) ?></div><div class="building-tag"><?= htmlspecialchars($r['city']) ?></div></td>
                     <td><span class="type-chip"><?= htmlspecialchars($r['room_type']) ?></span></td>
                     <td>Floor <?= $r['floor'] ?></td>
-                    <td><?= $r['size'] ? htmlspecialchars($r['size']) : '—' ?></td>
                     <td style="font-weight:600">Rp <?= number_format($r['price_per_month'],0,',','.') ?></td>
                     <td><span class="badge <?= $badge ?>"><?= htmlspecialchars($r['status']) ?></span></td>
                     <td>
                         <div class="actions">
-                            <button class="btn-sm btn-sm-edit" onclick='openEditModal(<?= json_encode(["room_id"=>$r["room_id"],"building_id"=>$r["building_id"],"room_number"=>$r["room_number"],"room_type"=>$r["room_type"],"floor"=>$r["floor"],"price_per_month"=>$r["price_per_month"],"status"=>$r["status"],"size"=>$r["size"]??"","facilities"=>$r["facilities"]??""]) ?>)'>✏️ Edit</button>
+                            <button class="btn-sm btn-sm-edit" onclick='openEditModal(<?= json_encode(["room_id"=>$r["room_id"],"building_id"=>$r["building_id"],"room_number"=>$r["room_number"],"room_type"=>$r["room_type"],"floor"=>$r["floor"],"price_per_month"=>$r["price_per_month"],"status"=>$r["status"]]) ?>)'>✏️ Edit</button>
                             <button class="btn-sm btn-sm-delete" onclick='openDeleteModal(<?= $r["room_id"] ?>,<?= json_encode($r["room_number"]) ?>)'>🗑️</button>
                         </div>
                     </td>
                 </tr>
                 <?php endwhile ?>
-                <?php if (!$has_rows): ?><tr class="empty-row"><td colspan="9">🚪 No rooms found. Add your first room!</td></tr><?php endif ?>
+                <?php if (!$has_rows): ?><tr class="empty-row"><td colspan="8">🚪 No rooms found. Add your first room!</td></tr><?php endif ?>
                 </tbody>
             </table>
         </div>
@@ -333,7 +328,6 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
                         <option value="Studio">Studio</option><option value="Suite">Suite</option><option value="Deluxe">Deluxe</option>
                     </select>
                 </div>
-                <div class="form-group"><label>Size (m²)</label><input type="text" name="size" placeholder="e.g. 12m²"></div>
             </div>
             <div class="form-row">
                 <div class="form-group"><label>Price / Month (Rp)</label><input type="number" name="price_per_month" placeholder="1500000" required></div>
@@ -344,7 +338,6 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
                     </select>
                 </div>
             </div>
-            <div class="form-group"><label>Facilities <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></label><input type="text" name="facilities" placeholder="e.g. AC, WiFi, Kamar Mandi Dalam"></div>
         </div>
         <div class="modal-footer"><button type="button" class="btn-cancel" onclick="closeModal('addModal')">Cancel</button><button type="submit" class="btn-submit">＋ Add Room</button></div>
     </form>
@@ -371,7 +364,6 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
                         <option value="Studio">Studio</option><option value="Suite">Suite</option><option value="Deluxe">Deluxe</option>
                     </select>
                 </div>
-                <div class="form-group"><label>Size (m²)</label><input type="text" name="size" id="editSize"></div>
             </div>
             <div class="form-row">
                 <div class="form-group"><label>Price / Month (Rp)</label><input type="number" name="price_per_month" id="editPrice" required></div>
@@ -382,7 +374,6 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
                     </select>
                 </div>
             </div>
-            <div class="form-group"><label>Facilities</label><input type="text" name="facilities" id="editFacilities"></div>
         </div>
         <div class="modal-footer"><button type="button" class="btn-cancel" onclick="closeModal('editModal')">Cancel</button><button type="submit" class="btn-submit">💾 Save Changes</button></div>
     </form>
@@ -409,10 +400,8 @@ function openEditModal(r){
     document.getElementById('editRoomNumber').value=r.room_number;
     document.getElementById('editFloor').value=r.floor;
     document.getElementById('editRoomType').value=r.room_type;
-    document.getElementById('editSize').value=r.size;
     document.getElementById('editPrice').value=r.price_per_month;
     document.getElementById('editStatus').value=r.status;
-    document.getElementById('editFacilities').value=r.facilities;
     openModal('editModal');
 }
 function openDeleteModal(id,num){document.getElementById('deleteRoomId').value=id;document.getElementById('deleteRoomNum').textContent=num;openModal('deleteModal')}

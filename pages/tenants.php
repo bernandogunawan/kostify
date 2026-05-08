@@ -14,20 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action == 'add') {
-        $first = mysqli_real_escape_string($conn, $_POST['first_name']);
-        $last  = mysqli_real_escape_string($conn, $_POST['last_name']);
-        $email = mysqli_real_escape_string($conn, $_POST['email']);
-        $phone = mysqli_real_escape_string($conn, $_POST['phone']);
-        $pass  = $_POST['password'];
-
-        $dup = mysqli_fetch_assoc(mysqli_query($conn, "SELECT tenant_id FROM tenant WHERE email='$email'"));
-        if ($dup) { $error = 'Email already registered.'; }
-        elseif (strlen($pass) < 8) { $error = 'Password must be at least 8 characters.'; }
-        else {
-            $hash = password_hash($pass, PASSWORD_BCRYPT);
-            mysqli_query($conn, "INSERT INTO tenant (first_name,last_name,email,phone,password) VALUES ('$first','$last','$email','$phone','$hash')");
-            $success = 'Tenant added successfully.';
-        }
+        $error = 'Tenants are created automatically after payment.';
 
     } elseif ($action == 'edit') {
         $id    = (int)$_POST['tenant_id'];
@@ -123,7 +110,6 @@ $active_tenants = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT 
         <div><h1>My Tenants</h1><p>People currently renting your rooms</p></div>
         <div class="topbar-right">
             <div class="topbar-date">📅 <?= date('D, d M Y') ?></div>
-            <button class="btn-add" onclick="openAddModal()">＋ Add Tenant</button>
         </div>
     </div>
 
@@ -176,23 +162,6 @@ $active_tenants = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT 
     </div>
 </div>
 
-<!-- ADD MODAL -->
-<div class="modal-backdrop" id="addModal"><div class="modal">
-    <div class="modal-header"><h3>Add New Tenant</h3><button class="modal-close" onclick="closeModal('addModal')">✕</button></div>
-    <form method="POST"><input type="hidden" name="action" value="add">
-        <div class="modal-body">
-            <div class="form-row">
-                <div class="form-group"><label>First Name</label><input type="text" name="first_name" placeholder="John" required></div>
-                <div class="form-group"><label>Last Name</label><input type="text" name="last_name" placeholder="Doe" required></div>
-            </div>
-            <div class="form-group"><label>Email</label><input type="email" name="email" placeholder="john@example.com" required></div>
-            <div class="form-group"><label>Phone</label><input type="text" name="phone" placeholder="+62 812-3456-7890"></div>
-            <div class="form-group"><label>Password</label><input type="password" name="password" placeholder="Minimum 8 characters" required><div class="form-hint">Tenant uses this to log in to the portal.</div></div>
-        </div>
-        <div class="modal-footer"><button type="button" class="btn-cancel" onclick="closeModal('addModal')">Cancel</button><button type="submit" class="btn-submit">＋ Add Tenant</button></div>
-    </form>
-</div></div>
-
 <!-- EDIT MODAL -->
 <div class="modal-backdrop" id="editModal"><div class="modal">
     <div class="modal-header"><h3>Edit Tenant</h3><button class="modal-close" onclick="closeModal('editModal')">✕</button></div>
@@ -224,7 +193,6 @@ function openModal(id){document.getElementById(id).classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.modal-backdrop').forEach(bd=>bd.addEventListener('click',e=>{if(e.target===bd)bd.classList.remove('open')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open'))});
-function openAddModal(){openModal('addModal')}
 function openEditModal(t){document.getElementById('editTenantId').value=t.tenant_id;document.getElementById('editFirst').value=t.first_name;document.getElementById('editLast').value=t.last_name;document.getElementById('editEmail').value=t.email;document.getElementById('editPhone').value=t.phone;openModal('editModal')}
 function openDeleteModal(id,name){document.getElementById('deleteTenantId').value=id;document.getElementById('deleteTenantName').textContent=name;openModal('deleteModal')}
 function filterTable(){

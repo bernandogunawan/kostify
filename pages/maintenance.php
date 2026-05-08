@@ -66,7 +66,7 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
 "));
 
 // Employees for assignment dropdown (only admin's buildings employees)
-$employees_res = mysqli_query($conn, "SELECT e.employee_id,e.first_name,e.last_name,e.role FROM employee e JOIN admin a ON e.employer=a.admin_id WHERE a.admin_id=e.employer ORDER BY e.first_name");
+$employees_res = mysqli_query($conn, "SELECT e.employee_id,e.first_name,e.last_name,e.role FROM employee e WHERE e.employer=$admin_id ORDER BY e.first_name");
 $employees_arr = [];
 while ($emp = mysqli_fetch_assoc($employees_res)) $employees_arr[] = $emp;
 ?>

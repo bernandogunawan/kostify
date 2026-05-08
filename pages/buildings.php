@@ -18,9 +18,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $address = mysqli_real_escape_string($conn, $_POST['address']);
         $city    = mysqli_real_escape_string($conn, $_POST['city']);
         $floors  = (int)$_POST['floors'];
-        $desc    = mysqli_real_escape_string($conn, $_POST['description']);
-        mysqli_query($conn, "INSERT INTO building (admin_id, name, address, city, total_floors, description)
-                             VALUES ($admin_id,'$name','$address','$city',$floors,'$desc')");
+        mysqli_query($conn, "INSERT INTO building (admin_id, name, address, city, total_floors)
+                             VALUES ($admin_id,'$name','$address','$city',$floors)");
         $success = 'Building added successfully.';
 
     } elseif ($action == 'edit') {
@@ -29,9 +28,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $address = mysqli_real_escape_string($conn, $_POST['address']);
         $city    = mysqli_real_escape_string($conn, $_POST['city']);
         $floors  = (int)$_POST['floors'];
-        $desc    = mysqli_real_escape_string($conn, $_POST['description']);
         mysqli_query($conn, "UPDATE building SET name='$name', address='$address', city='$city',
-                             total_floors=$floors, description='$desc'
+                             total_floors=$floors
                              WHERE building_id=$id AND admin_id=$admin_id");
         $success = 'Building updated successfully.';
 
@@ -140,11 +138,10 @@ $total_cities    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT
                 <div class="bstat"><div class="bstat-num avail"><?= $b['available'] ?></div><div class="bstat-lbl">Available</div></div>
             </div>
             <div class="occupancy-bar"><div class="occupancy-fill" style="width:<?= $pct ?>%"></div></div>
-            <?php if (!empty($b['description'])): ?><div class="building-desc"><?= htmlspecialchars($b['description']) ?></div><?php endif ?>
         </div>
         <div class="building-card-footer">
             <button class="btn-action btn-view" onclick="window.location.href='rooms.php?building_id=<?= $b['building_id'] ?>'">🚪 Rooms</button>
-            <button class="btn-action btn-edit" onclick='openEditModal(<?= $b["building_id"] ?>,<?= json_encode($b["name"]) ?>,<?= json_encode($b["address"]) ?>,<?= json_encode($b["city"]) ?>,<?= (int)$b["total_floors"] ?>,<?= json_encode($b["description"]??"") ?>)'>✏️ Edit</button>
+            <button class="btn-action btn-edit" onclick='openEditModal(<?= $b["building_id"] ?>,<?= json_encode($b["name"]) ?>,<?= json_encode($b["address"]) ?>,<?= json_encode($b["city"]) ?>,<?= (int)$b["total_floors"] ?>)'>✏️ Edit</button>
             <button class="btn-action btn-delete" onclick='openDeleteModal(<?= $b["building_id"] ?>,<?= json_encode($b["name"]) ?>)'>🗑️ Delete</button>
         </div>
     </div>
@@ -164,7 +161,6 @@ $total_cities    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT
                 <div class="form-group"><label>Total Floors</label><input type="number" name="floors" min="1" max="99" placeholder="3" required></div>
             </div>
             <div class="form-group"><label>Address</label><input type="text" name="address" placeholder="Jl. Contoh No. 1" required></div>
-            <div class="form-group"><label>Description <span style="text-transform:none;letter-spacing:0;font-weight:400">(optional)</span></label><textarea name="description" placeholder="Brief description…"></textarea></div>
         </div>
         <div class="modal-footer"><button type="button" class="btn-cancel" onclick="closeModal('addModal')">Cancel</button><button type="submit" class="btn-submit">＋ Add Building</button></div>
     </form>
@@ -181,7 +177,6 @@ $total_cities    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT
                 <div class="form-group"><label>Total Floors</label><input type="number" name="floors" id="editFloors" min="1" required></div>
             </div>
             <div class="form-group"><label>Address</label><input type="text" name="address" id="editAddress" required></div>
-            <div class="form-group"><label>Description</label><textarea name="description" id="editDesc"></textarea></div>
         </div>
         <div class="modal-footer"><button type="button" class="btn-cancel" onclick="closeModal('editModal')">Cancel</button><button type="submit" class="btn-submit">💾 Save Changes</button></div>
     </form>
@@ -202,10 +197,10 @@ function closeModal(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.modal-backdrop').forEach(bd=>bd.addEventListener('click',e=>{if(e.target===bd)bd.classList.remove('open')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open'))});
 function openAddModal(){openModal('addModal')}
-function openEditModal(id,name,address,city,floors,desc){
+function openEditModal(id,name,address,city,floors){
     document.getElementById('editId').value=id;document.getElementById('editName').value=name;
     document.getElementById('editAddress').value=address;document.getElementById('editCity').value=city;
-    document.getElementById('editFloors').value=floors;document.getElementById('editDesc').value=desc;
+    document.getElementById('editFloors').value=floors;
     openModal('editModal');
 }
 function openDeleteModal(id,name){document.getElementById('deleteId').value=id;document.getElementById('deleteName').textContent=name;openModal('deleteModal')}
