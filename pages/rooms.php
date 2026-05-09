@@ -20,21 +20,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
 
     if ($action == 'add') {
-        $building_id = (int)$_POST['building_id'];
-        if (!adminOwnsBuilding($conn, $building_id, $admin_id)) { $error = 'Unauthorized building.'; goto done; }
-
-        $room_number = mysqli_real_escape_string($conn, $_POST['room_number']);
-        $room_type   = mysqli_real_escape_string($conn, $_POST['room_type']);
-        $floor       = (int)$_POST['floor'];
-        $price       = (float)$_POST['price_per_month'];
-        $status      = mysqli_real_escape_string($conn, $_POST['status']);
-
-        $dup = mysqli_fetch_assoc(mysqli_query($conn, "SELECT room_id FROM room WHERE building_id=$building_id AND room_number='$room_number'"));
-        if ($dup) { $error = 'Room number already exists in this building.'; goto done; }
-
-        mysqli_query($conn, "INSERT INTO room (building_id,room_number,room_type,floor,price_per_month,status)
-                             VALUES ($building_id,'$room_number','$room_type',$floor,$price,'$status')");
-        $success = 'Room added successfully.';
+        $error = 'Add room is disabled here. Please add rooms from Buildings page.';
 
     } elseif ($action == 'edit') {
         $id          = (int)$_POST['room_id'];
@@ -46,6 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $floor       = (int)$_POST['floor'];
         $price       = (float)$_POST['price_per_month'];
         $status      = mysqli_real_escape_string($conn, $_POST['status']);
+
+        $building = mysqli_fetch_assoc(mysqli_query($conn, "SELECT total_floors FROM building WHERE building_id=$building_id AND admin_id=$admin_id"));
+        $max_floors = (int)($building['total_floors'] ?? 0);
+        if ($floor < 1 || $floor > $max_floors) {
+            $error = 'Invalid floor. This building only has ' . $max_floors . ' floor(s).';
+            goto done;
+        }
 
         mysqli_query($conn, "UPDATE room SET building_id=$building_id,room_number='$room_number',
                              room_type='$room_type',floor=$floor,price_per_month=$price,
@@ -166,7 +159,6 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
         .badge-available{background:#E8F5E9;color:#2E7D32}
         .badge-occupied{background:#FEE8ED;color:#8E3F52}
         .badge-maintenance{background:#FFF8E1;color:#F57F17}
-        .badge-reserved{background:#E3F2FD;color:#1565C0}
         .actions{display:flex;gap:6px}
         .btn-sm{padding:6px 12px;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
         .btn-sm-edit{background:rgba(181,85,106,.1);color:var(--rose)}.btn-sm-edit:hover{background:var(--rose);color:#fff}
@@ -226,9 +218,6 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
         <div><h1>My Rooms</h1><p>Rooms across your properties</p></div>
         <div class="topbar-right">
             <div class="topbar-date">📅 <?= date('D, d M Y') ?></div>
-            <?php if ($buildings_arr): ?>
-                <button class="btn-add" onclick="openAddModal()">＋ Add Room</button>
-            <?php endif ?>
         </div>
     </div>
 
@@ -267,7 +256,6 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
             <option value="Available" <?= $filter_status=='Available'?'selected':'' ?>>Available</option>
             <option value="Occupied" <?= $filter_status=='Occupied'?'selected':'' ?>>Occupied</option>
             <option value="Maintenance" <?= $filter_status=='Maintenance'?'selected':'' ?>>Maintenance</option>
-            <option value="Reserved" <?= $filter_status=='Reserved'?'selected':'' ?>>Reserved</option>
         </select>
     </div>
 
@@ -296,7 +284,7 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
                     </td>
                 </tr>
                 <?php endwhile ?>
-                <?php if (!$has_rows): ?><tr class="empty-row"><td colspan="8">🚪 No rooms found. Add your first room!</td></tr><?php endif ?>
+                <?php if (!$has_rows): ?><tr class="empty-row"><td colspan="8">🚪 No rooms found. Add rooms from the Buildings page.</td></tr><?php endif ?>
                 </tbody>
             </table>
         </div>
@@ -304,44 +292,6 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
     </div>
     <?php endif ?>
 </div>
-
-<!-- ADD MODAL -->
-<div class="modal-backdrop" id="addModal"><div class="modal">
-    <div class="modal-header"><h3>Add New Room</h3><button class="modal-close" onclick="closeModal('addModal')">✕</button></div>
-    <form method="POST"><input type="hidden" name="action" value="add">
-        <div class="modal-body">
-            <div class="form-group"><label>Building</label>
-                <select name="building_id" required>
-                    <option value="">— Select Building —</option>
-                    <?php foreach ($buildings_arr as $bld): ?><option value="<?= $bld['building_id'] ?>"><?= htmlspecialchars($bld['name']) ?> (<?= htmlspecialchars($bld['city']) ?>)</option><?php endforeach ?>
-                </select>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>Room Number</label><input type="text" name="room_number" placeholder="e.g. 101" required></div>
-                <div class="form-group"><label>Floor</label><input type="number" name="floor" min="1" placeholder="1" required></div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>Room Type</label>
-                    <select name="room_type" required>
-                        <option value="">— Select —</option>
-                        <option value="Single">Single</option><option value="Double">Double</option>
-                        <option value="Studio">Studio</option><option value="Suite">Suite</option><option value="Deluxe">Deluxe</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-row">
-                <div class="form-group"><label>Price / Month (Rp)</label><input type="number" name="price_per_month" placeholder="1500000" required></div>
-                <div class="form-group"><label>Status</label>
-                    <select name="status" required>
-                        <option value="Available">Available</option><option value="Occupied">Occupied</option>
-                        <option value="Maintenance">Maintenance</option><option value="Reserved">Reserved</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        <div class="modal-footer"><button type="button" class="btn-cancel" onclick="closeModal('addModal')">Cancel</button><button type="submit" class="btn-submit">＋ Add Room</button></div>
-    </form>
-</div></div>
 
 <!-- EDIT MODAL -->
 <div class="modal-backdrop" id="editModal"><div class="modal">
@@ -370,7 +320,7 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
                 <div class="form-group"><label>Status</label>
                     <select name="status" id="editStatus" required>
                         <option value="Available">Available</option><option value="Occupied">Occupied</option>
-                        <option value="Maintenance">Maintenance</option><option value="Reserved">Reserved</option>
+                        <option value="Maintenance">Maintenance</option>
                     </select>
                 </div>
             </div>
@@ -393,7 +343,6 @@ function openModal(id){document.getElementById(id).classList.add('open')}
 function closeModal(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.modal-backdrop').forEach(bd=>bd.addEventListener('click',e=>{if(e.target===bd)bd.classList.remove('open')}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open'))});
-function openAddModal(){openModal('addModal')}
 function openEditModal(r){
     document.getElementById('editRoomId').value=r.room_id;
     document.getElementById('editBuildingId').value=r.building_id;

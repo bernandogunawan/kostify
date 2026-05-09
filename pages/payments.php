@@ -103,7 +103,7 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
         <div class="table-card">
             <div class="table-wrap">
                 <table id="paymentTable">
-                    <thead><tr><th>#</th><th>Tenant</th><th>Room</th><th>Date</th><th>Amount</th><th>Method</th><th>Status</th><th>Notes</th></tr></thead>
+                    <thead><tr><th>#</th><th>Tenant</th><th>Room</th><th>Date</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead>
                     <tbody>
                     <?php $i=1; $has_rows=false; mysqli_data_seek($payments,0); while ($p=mysqli_fetch_assoc($payments)): $has_rows=true; $bc='badge-'.strtolower($p['status']); ?>
                     <tr data-search="<?= strtolower($p['first_name'].' '.$p['last_name'].' '.$p['room_number']) ?>" data-status="<?= strtolower($p['status']) ?>">
@@ -114,10 +114,9 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
                         <td style="font-weight:700">Rp <?= number_format($p['amount'],0,',','.') ?></td>
                         <td><?= htmlspecialchars($p['payment_method']) ?></td>
                         <td><span class="badge <?= $bc ?>"><?= $p['status'] ?></span></td>
-                        <td style="color:var(--muted);font-size:12px"><?= htmlspecialchars(($p['notes'] ?? '') ?: '—') ?></td>
                     </tr>
                     <?php endwhile ?>
-                    <?php if(!$has_rows): ?><tr class="empty-row"><td colspan="8">💳 No payment records yet.</td></tr><?php endif ?>
+                    <?php if(!$has_rows): ?><tr class="empty-row"><td colspan="7">💳 No payment records yet.</td></tr><?php endif ?>
                     </tbody>
                 </table>
             </div>

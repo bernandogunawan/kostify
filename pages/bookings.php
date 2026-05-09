@@ -38,8 +38,7 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
     SELECT COUNT(*) as total,
            SUM(b.status='Active')    as active,
            SUM(b.status='Confirmed') as confirmed,
-           SUM(b.status='Completed') as completed,
-           SUM(b.status='Cancelled') as cancelled
+           SUM(b.status='Completed') as completed
     FROM booking b JOIN room r ON b.room_id=r.room_id JOIN building bu ON r.building_id=bu.building_id
     WHERE bu.admin_id=$admin_id
 "));
@@ -92,7 +91,7 @@ while ($r = mysqli_fetch_assoc($rooms_res)) $rooms_arr[] = $r;
     <div class="status-strip">
         <?php
         $cur = $_GET['status'] ?? '';
-        foreach ([['','All',$stats['total'],''],['Active','Active',$stats['active'],'s-active'],['Confirmed','Confirmed',$stats['confirmed'],'s-confirmed'],['Completed','Completed',$stats['completed'],'s-completed'],['Cancelled','Cancelled',$stats['cancelled'],'s-cancelled']] as [$sv,$sl,$sn,$sc]):
+        foreach ([['','All',$stats['total'],''],['Active','Active',$stats['active'],'s-active'],['Confirmed','Confirmed',$stats['confirmed'],'s-confirmed'],['Completed','Completed',$stats['completed'],'s-completed']] as [$sv,$sl,$sn,$sc]):
         ?>
         <a href="bookings.php<?= $sv?'?status='.$sv:'' ?>" class="strip-card <?= $cur===$sv?'active-filter':'' ?>">
             <div class="strip-num <?= $sc ?>"><?= $sn ?></div>

@@ -13,14 +13,45 @@ $error    = '';
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
 
+    if ($action == 'add' && !empty($_POST['building_id'])) {
+        $action = 'edit';
+    }
+
     if ($action == 'add') {
         $name    = mysqli_real_escape_string($conn, $_POST['name']);
         $address = mysqli_real_escape_string($conn, $_POST['address']);
         $city    = mysqli_real_escape_string($conn, $_POST['city']);
         $floors  = (int)$_POST['floors'];
-        mysqli_query($conn, "INSERT INTO building (admin_id, name, address, city, total_floors)
-                             VALUES ($admin_id,'$name','$address','$city',$floors)");
-        $success = 'Building added successfully.';
+        $rooms_per_floor = (int)$_POST['rooms_per_floor'];
+        $room_type   = mysqli_real_escape_string($conn, $_POST['room_type'] ?? '');
+        $room_price  = (float)$_POST['room_price_per_month'];
+
+        if ($room_type === '' || $floors < 1 || $rooms_per_floor < 1 || $room_price < 0) {
+            $error = 'Please fill room generator data completely.';
+            goto done;
+        }
+
+        try {
+            mysqli_begin_transaction($conn);
+
+            mysqli_query($conn, "INSERT INTO building (admin_id, name, address, city, total_floors)
+                                 VALUES ($admin_id,'$name','$address','$city',$floors)");
+            $new_building_id = mysqli_insert_id($conn);
+
+            for ($floor = 1; $floor <= $floors; $floor++) {
+                for ($num = 1; $num <= $rooms_per_floor; $num++) {
+                    $room_number = $floor . str_pad((string)$num, 2, '0', STR_PAD_LEFT);
+                    mysqli_query($conn, "INSERT INTO room (building_id,room_number,room_type,floor,price_per_month,status)
+                                         VALUES ($new_building_id,'$room_number','$room_type',$floor,$room_price,'Available')");
+                }
+            }
+
+            mysqli_commit($conn);
+            $success = 'Building added and rooms generated automatically.';
+        } catch (Throwable $e) {
+            mysqli_rollback($conn);
+            $error = 'Failed to add building. Please try again.';
+        }
 
     } elseif ($action == 'edit') {
         $id      = (int)$_POST['building_id'];
@@ -38,12 +69,39 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $owns = mysqli_fetch_assoc(mysqli_query($conn, "SELECT building_id FROM building WHERE building_id=$id AND admin_id=$admin_id"));
         if (!$owns) { $error = 'Unauthorized.'; }
         else {
-            $rooms = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM room WHERE building_id=$id"))['c'];
-            if ($rooms > 0) $error = 'Cannot delete: building has ' . $rooms . ' room(s).';
-            else { mysqli_query($conn, "DELETE FROM building WHERE building_id=$id AND admin_id=$admin_id"); $success = 'Building deleted.'; }
+            try {
+                mysqli_begin_transaction($conn);
+
+                // Delete payment records tied to bookings in this building's rooms.
+                mysqli_query($conn, "DELETE p FROM payment p
+                                     JOIN booking bk ON p.booking_id = bk.booking_id
+                                     JOIN room r ON bk.room_id = r.room_id
+                                     WHERE r.building_id=$id");
+
+                // Delete bookings for this building's rooms.
+                mysqli_query($conn, "DELETE bk FROM booking bk
+                                     JOIN room r ON bk.room_id = r.room_id
+                                     WHERE r.building_id=$id");
+
+                // Delete maintenance requests for this building's rooms.
+                mysqli_query($conn, "DELETE m FROM maintenance m
+                                     JOIN room r ON m.room_id = r.room_id
+                                     WHERE r.building_id=$id");
+
+                // Delete rooms, then building.
+                mysqli_query($conn, "DELETE FROM room WHERE building_id=$id");
+                mysqli_query($conn, "DELETE FROM building WHERE building_id=$id AND admin_id=$admin_id");
+
+                mysqli_commit($conn);
+                $success = 'Building deleted (including rooms and related data).';
+            } catch (Throwable $e) {
+                mysqli_rollback($conn);
+                $error = 'Failed to delete building. Please try again.';
+            }
         }
     }
 }
+done:
 
 // ── Fetch MY buildings ──
 $buildings = mysqli_query($conn, "
@@ -161,6 +219,17 @@ $total_cities    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT
                 <div class="form-group"><label>Total Floors</label><input type="number" name="floors" min="1" max="99" placeholder="3" required></div>
             </div>
             <div class="form-group"><label>Address</label><input type="text" name="address" placeholder="Jl. Contoh No. 1" required></div>
+            <div class="form-row">
+                <div class="form-group"><label>Rooms Per Floor</label><input type="number" name="rooms_per_floor" min="1" max="99" placeholder="5" required></div>
+                <div class="form-group"><label>Default Room Type</label>
+                    <select name="room_type" required>
+                        <option value="">— Select —</option>
+                        <option value="Single">Single</option><option value="Double">Double</option>
+                        <option value="Studio">Studio</option><option value="Suite">Suite</option><option value="Deluxe">Deluxe</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group"><label>Default Room Price / Month (Rp)</label><input type="number" name="room_price_per_month" min="0" placeholder="1500000" required></div>
         </div>
         <div class="modal-footer"><button type="button" class="btn-cancel" onclick="closeModal('addModal')">Cancel</button><button type="submit" class="btn-submit">＋ Add Building</button></div>
     </form>
