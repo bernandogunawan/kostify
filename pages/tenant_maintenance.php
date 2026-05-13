@@ -9,6 +9,7 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] != 'tenant') {
 
 $tenant_id = $_SESSION['user_id'];
 
+/* ── Fetch maintenance history ── */
 $maint_query = mysqli_query($conn, "
     SELECT DISTINCT m.*, e.first_name as emp_first, e.last_name as emp_last, e.role as employee_role,
            r.room_number, bu.name as building_name
@@ -38,7 +39,6 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KOSTIFY — Maintenance</title>
-    <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/tenant_maintenance.css">
 </head>
 <body>
@@ -69,8 +69,8 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
 <div class="main">
     <div class="topbar">
         <div>
-            <h1>Maintenance History</h1>
-            <p>Track repairs and issues in your rooms</p>
+            <h1>Maintenance</h1>
+            <p>Submit requests and track repairs in your rooms</p>
         </div>
         <div class="topbar-date">📅 <?= date('D, d M Y') ?></div>
     </div>
@@ -85,6 +85,8 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
         </div>
     </div>
 
+
+    <!-- HISTORY TABLE -->
     <div class="maintenance-container">
         <div class="maintenance-header">
             <h2>Maintenance Records</h2>
@@ -96,7 +98,6 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
                     <th>Room / Location</th>
                     <th>Issue Description</th>
                     <th>Handled By</th>
-                    <th>Repair Cost</th>
                     <th>Status</th>
                 </tr>
             </thead>
@@ -122,7 +123,6 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
                                     <span style="color:var(--muted); font-size:13px;">Unassigned</span>
                                 <?php endif; ?>
                             </td>
-                            <td class="cost-amount">Rp <?= number_format($m['repair_cost'], 0, ',', '.') ?></td>
                             <td>
                                 <span class="badge badge-<?= strtolower($m['status']) ?>"><?= htmlspecialchars($m['status']) ?></span>
                             </td>
@@ -130,7 +130,7 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 40px;">
+                        <td colspan="5" style="text-align: center; padding: 40px;">
                             <div style="font-size: 40px; margin-bottom: 10px;">✨</div>
                             <h3 style="color: var(--dark); font-weight: 500;">Everything is working fine!</h3>
                             <p style="color: var(--muted); font-size: 13px; margin-top: 4px;">No maintenance requests have been made for your rooms.</p>
@@ -139,7 +139,6 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
                 <?php endif; ?>
             </tbody>
         </table>
-    </div>
 </div>
 
 </body>

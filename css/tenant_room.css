@@ -1,3 +1,270 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap');
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --dark: #1C1410;
+    --rose: #B5556A;
+    --rose-dark: #8E3F52;
+    --cream: #F5F0E8;
+    --white: #FFFFFF;
+    --muted: #8C7B70;
+    --border: #DDD5C8;
+    --bg: #F0EBE1;
+    --sidebar-w: 220px;
+}
+
+body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+    width: var(--sidebar-w);
+    background: var(--dark);
+    display: flex;
+    flex-direction: column;
+    padding: 32px 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: #fff;
+    letter-spacing: 4px;
+    padding: 0 24px 32px;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.sidebar-logo span {
+    display: block;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.nav {
+    margin-top: 24px;
+    flex: 1;
+}
+
+.nav a {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all .2s;
+    border-left: 3px solid transparent;
+}
+
+.nav a:hover,
+.nav a.active {
+    background: rgba(181, 85, 106, .12);
+    color: #fff;
+    border-left: 3px solid var(--rose);
+}
+
+.nav a .icon {
+    font-size: 16px;
+    width: 20px;
+}
+
+.sidebar-bottom {
+    padding: 24px;
+    border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    background: var(--rose);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.user-name {
+    font-size: 13px;
+    color: #fff;
+    font-weight: 500;
+}
+
+.user-role {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.logout-btn {
+    display: block;
+    text-align: center;
+    padding: 9px;
+    background: rgba(181, 85, 106, .15);
+    color: var(--rose);
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background .2s;
+}
+
+.logout-btn:hover {
+    background: var(--rose);
+    color: #fff;
+}
+
+/* ── MAIN ── */
+.main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 36px;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.topbar h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 26px;
+    color: var(--dark);
+}
+
+.topbar p {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.topbar-date {
+    font-size: 13px;
+    color: var(--muted);
+    background: #fff;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+}
+
+/* ── STAT CARDS ── */
+.stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.stat-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 22px;
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stat-icon {
+    font-size: 28px;
+    width: 52px;
+    height: 52px;
+    background: #FEF0F3;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.stat-value {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--dark);
+    margin-top: 2px;
+}
+
+.stat-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+/* ── BADGES ── */
+.badge {
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-active {
+    background: #E8F5E9;
+    color: #2E7D32;
+}
+
+.badge-pending {
+    background: #FFF8E1;
+    color: #F57F17;
+}
+
+.badge-confirmed {
+    background: #E3F2FD;
+    color: #1565C0;
+}
+
+.badge-completed {
+    background: #E8F5E9;
+    color: #2E7D32;
+}
+
+.badge-cancelled {
+    background: #FFEBEE;
+    color: #C62828;
+}
+
+/* ══════════════════════════════════
+   ROOM PAGE SPECIFIC
+   ══════════════════════════════════ */
+
 .my-room-container {
     display: flex;
     flex-direction: column;
@@ -28,7 +295,7 @@
 
 .booking-header p {
     font-size: 13px;
-    color: rgba(255,255,255,.6);
+    color: rgba(255, 255, 255, .6);
 }
 
 .booking-details-grid {
@@ -68,10 +335,10 @@
 }
 
 .price-box {
-    background: rgba(181,85,106,.05);
+    background: rgba(181, 85, 106, .05);
     padding: 16px;
     border-radius: 10px;
-    border: 1px solid rgba(181,85,106,.15);
+    border: 1px solid rgba(181, 85, 106, .15);
     margin-top: 10px;
 }
 

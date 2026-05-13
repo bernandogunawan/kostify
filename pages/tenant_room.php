@@ -26,7 +26,6 @@ $bookings_query = mysqli_query($conn, "
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KOSTIFY — My Room</title>
-    <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/tenant_room.css">
 </head>
 <body>
@@ -106,10 +105,7 @@ $bookings_query = mysqli_query($conn, "
                                 <div class="detail-label">Monthly Rent</div>
                                 <div class="detail-value">Rp <?= number_format($b['price_per_month'], 0, ',', '.') ?><span>/mo</span></div>
                             </div>
-                            <div class="price-box" style="margin-top:10px; background: rgba(0,0,0,0.03); border-color: var(--border);">
-                                <div class="detail-label" style="color:var(--muted)">Security Deposit</div>
-                                <div class="detail-value" style="color:var(--dark); font-size:16px;">Rp <?= number_format($b['deposit_amount'], 0, ',', '.') ?></div>
-                            </div>
+
                         </div>
                     </div>
                 </div>
