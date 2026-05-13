@@ -8,6 +8,39 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] != 'tenant') {
 }
 
 $tenant_id = $_SESSION['user_id'];
+$req_success = '';
+$req_error   = '';
+
+/* ── Handle new maintenance request submission ── */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submit_request') {
+    $room_id = (int)$_POST['room_id'];
+    $issue   = mysqli_real_escape_string($conn, trim($_POST['issue_description']));
+
+    // Verify tenant actually has this room booked
+    $owns = mysqli_fetch_assoc(mysqli_query($conn,
+        "SELECT b.room_id FROM booking b
+         WHERE b.tenant_id = $tenant_id AND b.room_id = $room_id AND b.status = 'Active' LIMIT 1"));
+
+    if (!$owns) {
+        $req_error = 'You do not have an active booking for this room.';
+    } elseif (empty($issue)) {
+        $req_error = 'Please describe the issue.';
+    } else {
+        mysqli_query($conn,
+            "INSERT INTO maintenance (room_id, issue_description, status, priority, request_date)
+             VALUES ($room_id, '$issue', 'Pending', 'Medium', CURDATE())");
+        $req_success = 'Your maintenance request has been submitted!';
+    }
+}
+
+/* ── Fetch tenant's active booking room ── */
+$active_booking = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT b.room_id, r.room_number, bu.name as building_name
+     FROM booking b
+     JOIN room r ON b.room_id = r.room_id
+     JOIN building bu ON r.building_id = bu.building_id
+     WHERE b.tenant_id = $tenant_id AND b.status = 'Active'
+     LIMIT 1"));
 
 /* ── Fetch maintenance history ── */
 $maint_query = mysqli_query($conn, "
@@ -67,12 +100,26 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
 </div>
 
 <div class="main">
+    <?php if ($req_success): ?>
+    <div class="alert alert-success">✅ <?= htmlspecialchars($req_success) ?></div>
+    <?php endif; ?>
+    <?php if ($req_error): ?>
+    <div class="alert alert-error">⚠️ <?= htmlspecialchars($req_error) ?></div>
+    <?php endif; ?>
+
     <div class="topbar">
         <div>
             <h1>Maintenance</h1>
             <p>Submit requests and track repairs in your rooms</p>
         </div>
-        <div class="topbar-date">📅 <?= date('D, d M Y') ?></div>
+        <div class="topbar-right">
+            <div class="topbar-date">📅 <?= date('D, d M Y') ?></div>
+            <?php if ($active_booking): ?>
+            <button class="btn-add" onclick="openRequestModal()">
+                🔧 New Request
+            </button>
+            <?php endif; ?>
+        </div>
     </div>
 
     <div class="stats" style="grid-template-columns: 1fr;">
@@ -140,6 +187,55 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
             </tbody>
         </table>
 </div>
+
+<!-- ── REQUEST MODAL ── -->
+<div class="modal-backdrop" id="requestModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>🔧 Submit Maintenance Request</h3>
+            <button class="modal-close" onclick="closeRequestModal()">✕</button>
+        </div>
+        <form method="POST">
+            <input type="hidden" name="action" value="submit_request">
+            <?php if ($active_booking): ?>
+            <input type="hidden" name="room_id" value="<?= $active_booking['room_id'] ?>">
+            <?php endif; ?>
+            <div class="modal-body">
+                <div class="form-room-badge">
+                    🚪 Room <?= htmlspecialchars($active_booking['room_number'] ?? '—') ?>
+                    &nbsp;·&nbsp;
+                    🏢 <?= htmlspecialchars($active_booking['building_name'] ?? '—') ?>
+                </div>
+
+                <div class="form-group">
+                    <label for="req_issue">Issue Description <span class="req-asterisk">*</span></label>
+                    <textarea name="issue_description" id="req_issue" rows="5"
+                              placeholder="Describe the problem in detail, e.g. 'The bathroom tap is leaking' …"
+                              required></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeRequestModal()">Cancel</button>
+                <button type="submit" class="btn-submit">📨 Submit Request</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openRequestModal()  { document.getElementById('requestModal').classList.add('open'); }
+function closeRequestModal() { document.getElementById('requestModal').classList.remove('open'); }
+
+document.getElementById('requestModal').addEventListener('click', function(e) {
+    if (e.target === this) closeRequestModal();
+});
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeRequestModal();
+});
+
+// Auto-dismiss alerts
+document.querySelectorAll('.alert').forEach(el => setTimeout(() => el.style.opacity = '0', 4000));
+</script>
 
 </body>
 </html>
