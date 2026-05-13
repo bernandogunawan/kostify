@@ -6,31 +6,63 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] != 'admin') {
     header('Location: ../auth/login.php?mode=admin'); exit;
 }
 
-$total_rooms     = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM room"))['c'];
-$occupied_rooms  = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM room WHERE status='Occupied'"))['c'];
-$total_tenants   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM tenant"))['c'];
-$total_buildings = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM building"))['c'];
-$total_revenue   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(amount) as s FROM payment WHERE status='Completed'"))['s'] ?? 0;
-$pending_maint   = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM maintenance WHERE status='Pending'"))['c'];
+$admin_id = (int)$_SESSION['user_id'];
 
-$bookings = mysqli_query($conn, "
-    SELECT b.booking_id, b.start_date, b.end_date, b.status,
-           t.first_name, t.last_name,
-           r.room_number, r.room_type
-    FROM booking b
-    JOIN tenant t ON b.tenant_id = t.tenant_id
-    JOIN room   r ON b.room_id   = r.room_id
-    ORDER BY b.booking_date DESC LIMIT 5
-");
+$total_buildings = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT COUNT(*) as c FROM building WHERE admin_id = $admin_id"))['c'] ?? 0;
 
-$payments = mysqli_query($conn, "
-    SELECT p.amount, p.payment_date, p.payment_method, p.status,
-           t.first_name, t.last_name
-    FROM payment p
-    JOIN booking b ON p.booking_id = b.booking_id
-    JOIN tenant  t ON b.tenant_id  = t.tenant_id
-    ORDER BY p.payment_date DESC LIMIT 5
-");
+$total_rooms = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT COUNT(*) as c FROM room r
+     JOIN building bu ON r.building_id = bu.building_id
+     WHERE bu.admin_id = $admin_id"))['c'] ?? 0;
+
+$occupied_rooms = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT COUNT(*) as c FROM room r
+     JOIN building bu ON r.building_id = bu.building_id
+     WHERE bu.admin_id = $admin_id AND r.status = 'Occupied'"))['c'] ?? 0;
+
+$total_tenants = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT COUNT(DISTINCT b.tenant_id) as c
+     FROM booking b
+     JOIN room r ON b.room_id = r.room_id
+     JOIN building bu ON r.building_id = bu.building_id
+     WHERE bu.admin_id = $admin_id AND b.status = 'Active'"))['c'] ?? 0;
+
+$total_revenue = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT COALESCE(SUM(p.amount), 0) as s
+     FROM payment p
+     JOIN booking b ON p.booking_id = b.booking_id
+     JOIN room r ON b.room_id = r.room_id
+     JOIN building bu ON r.building_id = bu.building_id
+     WHERE bu.admin_id = $admin_id AND p.status = 'Completed'"))['s'] ?? 0;
+
+$pending_maint = mysqli_fetch_assoc(mysqli_query($conn,
+    "SELECT COUNT(*) as c FROM maintenance m
+     JOIN room r ON m.room_id = r.room_id
+     JOIN building bu ON r.building_id = bu.building_id
+     WHERE bu.admin_id = $admin_id AND m.status = 'Pending'"))['c'] ?? 0;
+
+$bookings = mysqli_query($conn,
+    "SELECT b.booking_id, b.start_date, b.end_date, b.status,
+            t.first_name, t.last_name,
+            r.room_number, r.room_type
+     FROM booking b
+     JOIN tenant t   ON b.tenant_id   = t.tenant_id
+     JOIN room r     ON b.room_id     = r.room_id
+     JOIN building bu ON r.building_id = bu.building_id
+     WHERE bu.admin_id = $admin_id
+     ORDER BY b.booking_date DESC LIMIT 5");
+
+$payments = mysqli_query($conn,
+    "SELECT p.amount, p.payment_date, p.payment_method, p.status,
+            t.first_name, t.last_name
+     FROM payment p
+     JOIN booking b  ON p.booking_id  = b.booking_id
+     JOIN room r     ON b.room_id     = r.room_id
+     JOIN building bu ON r.building_id = bu.building_id
+     JOIN tenant t   ON b.tenant_id   = t.tenant_id
+     WHERE bu.admin_id = $admin_id
+     ORDER BY p.payment_date DESC LIMIT 5");
 ?>
 <!DOCTYPE html>
 <html lang="en">

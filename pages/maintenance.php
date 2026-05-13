@@ -109,19 +109,19 @@ while ($emp = mysqli_fetch_assoc($employees_res)) $employees_arr[] = $emp;
     <?php if ($error):   ?><div class="alert alert-error">⚠️ <?= htmlspecialchars($error) ?></div><?php endif ?>
 
     <div class="stats">
-        <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-label">Total</div><div class="stat-value"><?= $stats['total'] ?></div></div></div>
-        <div class="stat-card"><div class="stat-icon">⏳</div><div><div class="stat-label">Pending</div><div class="stat-value" style="color:#F57F17"><?= $stats['pending'] ?></div></div></div>
-        <div class="stat-card"><div class="stat-icon">🔨</div><div><div class="stat-label">In Progress</div><div class="stat-value" style="color:#1565C0"><?= $stats['in_progress'] ?></div></div></div>
-        <div class="stat-card"><div class="stat-icon">✅</div><div><div class="stat-label">Completed</div><div class="stat-value" style="color:#2E7D32"><?= $stats['completed'] ?></div></div></div>
-        <div class="stat-card"><div class="stat-icon">💸</div><div><div class="stat-label">Repair Costs</div><div class="stat-value" style="font-size:15px">Rp <?= number_format($stats['total_cost'],0,',','.') ?></div></div></div>
+        <div class="stat-card"><div class="stat-icon">📋</div><div><div class="stat-label">Total</div><div class="stat-value"><?= $stats['total'] ?? 0 ?></div></div></div>
+        <div class="stat-card"><div class="stat-icon">⏳</div><div><div class="stat-label">Pending</div><div class="stat-value" style="color:#F57F17"><?= $stats['pending'] ?? 0 ?></div></div></div>
+        <div class="stat-card"><div class="stat-icon">🔨</div><div><div class="stat-label">In Progress</div><div class="stat-value" style="color:#1565C0"><?= $stats['in_progress'] ?? 0 ?></div></div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div><div class="stat-label">Completed</div><div class="stat-value" style="color:#2E7D32"><?= $stats['completed'] ?? 0 ?></div></div></div>
+        <div class="stat-card"><div class="stat-icon">💸</div><div><div class="stat-label">Repair Costs</div><div class="stat-value" style="font-size:15px">Rp <?= number_format($stats['total_cost'] ?? 0,0,',','.') ?></div></div></div>
     </div>
 
     <div class="filter-strip">
         <?php $cur=$_GET['status']??''; ?>
-        <a href="maintenance.php" class="filter-btn <?= $cur===''?'active':'' ?>">All (<?= $stats['total'] ?>)</a>
-        <a href="maintenance.php?status=Pending" class="filter-btn f-pending <?= $cur==='Pending'?'active':'' ?>">⏳ Pending (<?= $stats['pending'] ?>)</a>
-        <a href="maintenance.php?status=In Progress" class="filter-btn f-progress <?= $cur==='In Progress'?'active':'' ?>">🔨 In Progress (<?= $stats['in_progress'] ?>)</a>
-        <a href="maintenance.php?status=Completed" class="filter-btn f-done <?= $cur==='Completed'?'active':'' ?>">✅ Completed (<?= $stats['completed'] ?>)</a>
+        <a href="maintenance.php" class="filter-btn <?= $cur===''?'active':'' ?>">All (<?= $stats['total'] ?? 0 ?>)</a>
+        <a href="maintenance.php?status=Pending" class="filter-btn f-pending <?= $cur==='Pending'?'active':'' ?>">⏳ Pending (<?= $stats['pending'] ?? 0 ?>)</a>
+        <a href="maintenance.php?status=In Progress" class="filter-btn f-progress <?= $cur==='In Progress'?'active':'' ?>">🔨 In Progress (<?= $stats['in_progress'] ?? 0 ?>)</a>
+        <a href="maintenance.php?status=Completed" class="filter-btn f-done <?= $cur==='Completed'?'active':'' ?>">✅ Completed (<?= $stats['completed'] ?? 0 ?>)</a>
     </div>
 
     <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="Search room or issue…" oninput="filterCards()"></div>
