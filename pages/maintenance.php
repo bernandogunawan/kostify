@@ -17,14 +17,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $id          = (int)$_POST['maintenance_id'];
         $status      = mysqli_real_escape_string($conn, $_POST['status']);
         $employee_id = $_POST['employee_id'] ? (int)$_POST['employee_id'] : 'NULL';
-        $repair_cost = (float)($_POST['repair_cost'] ?? 0);
-        $notes       = mysqli_real_escape_string($conn, $_POST['admin_notes'] ?? '');
 
         // Verify room belongs to admin
         $owns = mysqli_fetch_assoc(mysqli_query($conn, "SELECT m.maintenance_id FROM maintenance m JOIN room r ON m.room_id=r.room_id JOIN building b ON r.building_id=b.building_id WHERE m.maintenance_id=$id AND b.admin_id=$admin_id"));
         if (!$owns) { $error = 'Unauthorized.'; goto done; }
 
-        mysqli_query($conn, "UPDATE maintenance SET status='$status', employee_id=$employee_id, repair_cost=$repair_cost, admin_notes='$notes' WHERE maintenance_id=$id");
+        mysqli_query($conn, "UPDATE maintenance SET status='$status', employee_id=$employee_id WHERE maintenance_id=$id");
         $success = 'Request updated.';
 
     } elseif ($action == 'delete') {
@@ -59,8 +57,7 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
     SELECT COUNT(*) AS total,
            SUM(m.status='Pending')     AS pending,
            SUM(m.status='In Progress') AS in_progress,
-           SUM(m.status='Completed')   AS completed,
-           COALESCE(SUM(m.repair_cost),0) AS total_cost
+           SUM(m.status='Completed')   AS completed
     FROM maintenance m JOIN room r ON m.room_id=r.room_id JOIN building b ON r.building_id=b.building_id
     WHERE b.admin_id=$admin_id
 "));
@@ -113,7 +110,7 @@ while ($emp = mysqli_fetch_assoc($employees_res)) $employees_arr[] = $emp;
         <div class="stat-card"><div class="stat-icon">⏳</div><div><div class="stat-label">Pending</div><div class="stat-value" style="color:#F57F17"><?= $stats['pending'] ?? 0 ?></div></div></div>
         <div class="stat-card"><div class="stat-icon">🔨</div><div><div class="stat-label">In Progress</div><div class="stat-value" style="color:#1565C0"><?= $stats['in_progress'] ?? 0 ?></div></div></div>
         <div class="stat-card"><div class="stat-icon">✅</div><div><div class="stat-label">Completed</div><div class="stat-value" style="color:#2E7D32"><?= $stats['completed'] ?? 0 ?></div></div></div>
-        <div class="stat-card"><div class="stat-icon">💸</div><div><div class="stat-label">Repair Costs</div><div class="stat-value" style="font-size:15px">Rp <?= number_format($stats['total_cost'] ?? 0,0,',','.') ?></div></div></div>
+
     </div>
 
     <div class="filter-strip">
@@ -131,8 +128,6 @@ while ($emp = mysqli_fetch_assoc($employees_res)) $employees_arr[] = $emp;
     $has=false;
     while ($m=mysqli_fetch_assoc($requests)):
         $has=true;
-        $priority = $m['priority'] ?? 'Medium';
-        $pc='pb-'.strtolower($priority);
         $bc='badge-'.strtolower(str_replace(' ','-',$m['status']));
         $card_class = $m['status']=='Pending' ? 'priority-high' : ($m['status']=='In Progress' ? 'priority-medium' : 'priority-low');
     ?>
@@ -145,7 +140,6 @@ while ($emp = mysqli_fetch_assoc($employees_res)) $employees_arr[] = $emp;
             </div>
             <div style="text-align:right">
                 <span class="badge <?= $bc ?>"><?= $m['status'] ?></span>
-                <?php if (!empty($priority)): ?><br><span class="priority-badge <?= $pc ?>" style="margin-top:4px;display:inline-block"><?= $priority ?></span><?php endif ?>
             </div>
         </div>
         <div class="req-body">
@@ -154,12 +148,10 @@ while ($emp = mysqli_fetch_assoc($employees_res)) $employees_arr[] = $emp;
                 <span>📅 Requested: <strong><?= date('d M Y',strtotime($m['request_date'])) ?></strong></span>
                 <?php if ($m['t_first']): ?><span>👤 Tenant: <strong><?= htmlspecialchars($m['t_first'].' '.$m['t_last']) ?></strong></span><?php endif ?>
                 <?php if ($m['e_first']): ?><span>👷 Assigned: <strong><?= htmlspecialchars($m['e_first'].' '.$m['e_last']) ?></strong> (<?= htmlspecialchars($m['e_role']) ?>)</span><?php endif ?>
-                <?php if ($m['repair_cost'] > 0): ?><span>💰 Cost: <strong>Rp <?= number_format($m['repair_cost'],0,',','.') ?></strong></span><?php endif ?>
-                <?php if (!empty($m['admin_notes'])): ?><span>📝 Notes: <strong><?= htmlspecialchars($m['admin_notes']) ?></strong></span><?php endif ?>
             </div>
         </div>
         <div class="req-foot">
-            <button class="btn-sm btn-sm-edit" onclick='openUpdateModal(<?= json_encode(["maintenance_id"=>$m["maintenance_id"],"status"=>$m["status"],"employee_id"=>$m["employee_id"]??"","repair_cost"=>$m["repair_cost"]??"0","admin_notes"=>$m["admin_notes"]??""]) ?>,<?= json_encode("Room ".$m["room_number"].": ".$m["issue_description"]) ?>)'>✏️ Update Status</button>
+            <button class="btn-sm btn-sm-edit" onclick='openUpdateModal(<?= json_encode(["maintenance_id"=>$m["maintenance_id"],"status"=>$m["status"],"employee_id"=>$m["employee_id"]??""]) ?>,<?= json_encode("Room ".$m["room_number"].": ".$m["issue_description"]) ?>)'>✏️ Update Status</button>
             <button class="btn-sm btn-sm-delete" onclick='openDeleteModal(<?= $m["maintenance_id"] ?>)'>🗑️</button>
         </div>
     </div>
@@ -190,8 +182,6 @@ while ($emp = mysqli_fetch_assoc($employees_res)) $employees_arr[] = $emp;
                     </select>
                 </div>
             </div>
-            <div class="form-group"><label>Repair Cost (Rp)</label><input type="number" name="repair_cost" id="updateCost" min="0" value="0"></div>
-            <div class="form-group"><label>Admin Notes</label><textarea name="admin_notes" id="updateNotes" placeholder="Add notes or resolution details…"></textarea></div>
         </div>
         <div class="modal-footer"><button type="button" class="btn-cancel" onclick="closeModal('updateModal')">Cancel</button><button type="submit" class="btn-submit">💾 Save Update</button></div>
     </form>
@@ -215,8 +205,6 @@ function openUpdateModal(m, issue){
     document.getElementById('updateId').value=m.maintenance_id;
     document.getElementById('updateStatus').value=m.status;
     document.getElementById('updateEmployee').value=m.employee_id||'';
-    document.getElementById('updateCost').value=m.repair_cost||0;
-    document.getElementById('updateNotes').value=m.admin_notes||'';
     document.getElementById('updateIssuePreview').textContent=issue;
     openModal('updateModal');
 }

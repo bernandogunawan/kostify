@@ -27,8 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
         $req_error = 'Please describe the issue.';
     } else {
         mysqli_query($conn,
-            "INSERT INTO maintenance (room_id, issue_description, status, priority, request_date)
-             VALUES ($room_id, '$issue', 'Pending', 'Medium', CURDATE())");
+            "INSERT INTO maintenance (room_id, issue_description, status, request_date)
+             VALUES ($room_id, '$issue', 'Pending', CURDATE())");
         $req_success = 'Your maintenance request has been submitted!';
     }
 }
