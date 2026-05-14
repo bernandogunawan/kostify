@@ -104,7 +104,7 @@ while ($row = mysqli_fetch_assoc($bf)) {
     <div class="table-card">
         <div class="table-wrap">
             <table id="bookingTable">
-                <thead><tr><th>ID</th><th>Tenant</th><th>Room</th><th>Period</th><th>Deposit</th><th>Price/Mo</th><th>Status</th></tr></thead>
+                <thead><tr><th>ID</th><th>Tenant</th><th>Room</th><th>Period</th><th>Price/Mo</th><th>Status</th></tr></thead>
                 <tbody>
                 <?php $has_rows=false; while ($b=mysqli_fetch_assoc($bookings)): $has_rows=true;
                     $d1=new DateTime($b['start_date']); $d2=new DateTime($b['end_date']); $dur=$d1->diff($d2)->days.'d';
@@ -115,12 +115,11 @@ while ($row = mysqli_fetch_assoc($bf)) {
                     <td><div style="font-weight:600"><?= htmlspecialchars($b['first_name'].' '.$b['last_name']) ?></div><div style="font-size:11px;color:var(--muted)"><?= htmlspecialchars($b['email']) ?></div></td>
                     <td><div style="font-weight:600">Room <?= htmlspecialchars($b['room_number']) ?> <span style="color:var(--muted);font-weight:400">(<?= $b['room_type'] ?>)</span></div><div style="font-size:11px;color:var(--muted)"><?= htmlspecialchars($b['building_name']) ?></div></td>
                     <td><div style="font-size:12px"><?= date('d M Y',strtotime($b['start_date'])) ?> → <?= date('d M Y',strtotime($b['end_date'])) ?></div><span class="duration-chip"><?= $dur ?></span></td>
-                    <td>Rp <?= number_format($b['deposit_amount'],0,',','.') ?></td>
                     <td>Rp <?= number_format($b['price_per_month'],0,',','.') ?></td>
                     <td><span class="badge <?= $bc ?>"><?= $b['status'] ?></span></td>
                 </tr>
                 <?php endwhile ?>
-                <?php if (!$has_rows): ?><tr class="empty-row"><td colspan="7">📋 No active bookings.</td></tr><?php endif ?>
+                <?php if (!$has_rows): ?><tr class="empty-row"><td colspan="6">📋 No active bookings.</td></tr><?php endif ?>
                 </tbody>
             </table>
         </div>
