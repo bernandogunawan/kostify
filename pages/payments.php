@@ -95,10 +95,6 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
     <div id="tab-history" class="tab-panel active">
         <div class="toolbar">
             <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="Search tenant or room…" oninput="filterPayments()"></div>
-            <select class="filter-select" id="statusFilter" onchange="filterPayments()">
-                <option value="">All payments</option>
-                <option value="Completed" <?= $filter_status=='Completed'?'selected':'' ?>>Completed</option>
-            </select>
         </div>
         <div class="table-card">
             <div class="table-wrap">
