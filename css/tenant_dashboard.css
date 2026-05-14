@@ -248,8 +248,25 @@ td {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
     position: relative;
     overflow: hidden;
+}
+
+.room-card-text,
+.room-card-pricing {
+    position: relative;
+    z-index: 1;
+}
+
+.room-card-text {
+    flex: 1;
+    min-width: 200px;
+}
+
+.room-card-pricing {
+    text-align: right;
 }
 
 .room-card::before {
@@ -290,3 +307,309 @@ td {
 .info-row:first-child { border-top: none; }
 .info-label { color: var(--muted); }
 .info-value { font-weight: 500; color: var(--dark); }
+
+/* ── Room photo gallery (3 per row) ── */
+.room-gallery-section {
+    margin-bottom: 24px;
+}
+
+.card-head {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+}
+
+.room-gallery-sub {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 400;
+}
+
+.room-gallery-body {
+    padding: 18px 20px 22px;
+}
+
+/* Always 3 square thumbnails per row; capped width so tiles stay compact */
+.room-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    width: 100%;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+@media (min-width: 640px) {
+    .room-gallery-grid {
+        max-width: 480px;
+    }
+}
+
+@media (min-width: 900px) {
+    .room-gallery-grid {
+        max-width: 540px;
+    }
+}
+
+.room-gallery-tile {
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+    background: #FDFAF6;
+    transition: border-color .2s, box-shadow .2s;
+    min-width: 0;
+}
+
+.room-gallery-tile:hover {
+    border-color: var(--rose);
+    box-shadow: 0 6px 20px rgba(28, 20, 16, .1);
+}
+
+.room-gallery-tile:focus-visible {
+    outline: 2px solid var(--rose);
+    outline-offset: 2px;
+}
+
+.room-gallery-img-wrap {
+    aspect-ratio: 1 / 1;
+    overflow: hidden;
+    background: #E8E3DB;
+}
+
+.room-gallery-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.room-gallery-caption {
+    display: block;
+    padding: 6px 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--dark);
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.room-gallery-empty {
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    padding: 8px 0 4px;
+}
+
+/* ── Room detail modal (matches admin “Edit Room” look, read-only) ── */
+@keyframes tdModalSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.td-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(28, 20, 16, .55);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.td-modal-backdrop.open {
+    display: flex;
+}
+
+.td-room-modal {
+    background: #fff;
+    border-radius: 18px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .2);
+    animation: tdModalSlideUp .25s ease;
+}
+
+.td-room-modal-header {
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.td-room-modal-header h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--dark);
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.td-room-modal-close {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 50%;
+    background: #F0EBE1;
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .2s;
+}
+
+.td-room-modal-close:hover {
+    background: var(--border);
+}
+
+.td-room-modal-body {
+    padding: 24px 28px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.td-form-group {
+    margin-bottom: 16px;
+}
+
+.td-form-group:last-child {
+    margin-bottom: 0;
+}
+
+.td-form-group > label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+}
+
+.td-readonly {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--dark);
+    background: #FDFAF6;
+    line-height: 1.4;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+}
+
+.td-readonly-hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 0 0 8px;
+    line-height: 1.45;
+}
+
+.td-form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.td-form-row .td-form-group {
+    margin-bottom: 0;
+}
+
+.td-readonly-photo-wrap {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: #FDFAF6;
+    margin-top: 4px;
+}
+
+.td-readonly-photo {
+    width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+    display: block;
+}
+
+.td-room-modal-footer {
+    padding: 16px 28px 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.td-btn-modal-close {
+    padding: 10px 24px;
+    background: #F0EBE1;
+    border: 1.5px solid var(--border);
+    border-radius: 9px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: background .2s, color .2s;
+}
+
+.td-btn-modal-close:hover {
+    background: var(--border);
+    color: var(--dark);
+}
+
+.td-book-wrap {
+    margin-bottom: 16px;
+}
+
+.td-btn-book {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 12px 18px;
+    border-radius: 10px;
+    background: var(--rose);
+    color: #fff !important;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .2s;
+}
+
+.td-btn-book:hover {
+    background: var(--rose-dark);
+}
+
+.td-alert-success {
+    background: #E8F5E9;
+    color: #2E7D32;
+    border: 1px solid #C8E6C9;
+    padding: 12px 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    margin-bottom: 20px;
+    max-width: 720px;
+}

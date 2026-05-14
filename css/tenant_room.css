@@ -285,6 +285,26 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.booking-header-main {
+    flex: 1;
+    min-width: 200px;
+}
+
+.booking-header-photo img {
+    width: 88px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 2px solid rgba(255, 255, 255, .22);
+    display: block;
+}
+
+.booking-header-meta {
+    text-align: right;
 }
 
 .booking-header h2 {

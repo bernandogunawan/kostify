@@ -16,23 +16,17 @@ $booking = mysqli_fetch_assoc(mysqli_query($conn, "
     JOIN room r      ON b.room_id      = r.room_id
     JOIN building bu ON r.building_id  = bu.building_id
     WHERE b.tenant_id = $tenant_id
-    ORDER BY b.booking_date DESC LIMIT 1
+    ORDER BY b.booking_date DESC, b.booking_id DESC LIMIT 1
 "));
+$bk = is_array($booking) ? $booking : [];
 
-$payments = mysqli_query($conn, "
-    SELECT p.*
-    FROM payment p
-    JOIN booking b ON p.booking_id = b.booking_id
-    WHERE b.tenant_id = $tenant_id
-    ORDER BY p.payment_date DESC
-");
-
-$maint = mysqli_query($conn, "
-    SELECT m.*, e.first_name as emp_first, e.last_name as emp_last, e.role as employee_role
-    FROM maintenance m
-    LEFT JOIN employee e ON m.employee_id = e.employee_id
-    WHERE m.room_id = " . ($booking['room_id'] ?? 0) . "
-    ORDER BY m.request_date DESC LIMIT 5
+$room_gallery = mysqli_query($conn, "
+    SELECT r.room_id, r.room_number, r.room_type, r.floor, r.price_per_month, r.status, r.photo_path,
+           bu.name AS building_name, bu.city, bu.address
+    FROM room r
+    JOIN building bu ON r.building_id = bu.building_id
+    WHERE r.photo_path IS NOT NULL AND TRIM(r.photo_path) <> ''
+    ORDER BY bu.name, r.floor, r.room_number
 ");
 ?>
 
@@ -42,7 +36,7 @@ $maint = mysqli_query($conn, "
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KOSTIFY — My Dashboard</title>
-    <link rel="stylesheet" href="../css/tenant_dashboard.css">
+    <link rel="stylesheet" href="../css/tenant_dashboard.css?v=<?= (int)@filemtime(__DIR__ . '/../css/tenant_dashboard.css') ?>">
 </head>
 <body>
 
@@ -79,173 +73,184 @@ $maint = mysqli_query($conn, "
         <div class="topbar-date">📅 <?= date('D, d M Y') ?></div>
     </div>
 
-    <!-- ROOM CARD -->
+    <?php if (!empty($_GET['booked'])): ?>
+    <div class="td-alert-success">✅ Your booking and payment have been saved. You can see your room details above.</div>
+    <?php endif; ?>
+
+    <!-- ROOM CARD (no photo — photos are in the gallery below) -->
     <div class="room-card">
-        <div>
+        <div class="room-card-text">
             <h2>
-                Room <?= $booking['room_number'] ?? '-' ?> — 
-                <?= $booking['room_type'] ?? 'No Room Yet' ?>
+                Room <?= htmlspecialchars($bk['room_number'] ?? '-') ?> —
+                <?= htmlspecialchars($bk['room_type'] ?? 'No Room Yet') ?>
             </h2>
 
             <p>
-                🏢 <?= htmlspecialchars($booking['building_name'] ?? '-') ?>, 
-                <?= htmlspecialchars($booking['city'] ?? '-') ?>
+                🏢 <?= htmlspecialchars($bk['building_name'] ?? '-') ?>,
+                <?= htmlspecialchars($bk['city'] ?? '-') ?>
             </p>
 
             <p>
-                📍 <?= htmlspecialchars($booking['address'] ?? '-') ?> · 
-                Floor <?= $booking['floor'] ?? '-' ?>
+                📍 <?= htmlspecialchars($bk['address'] ?? '-') ?> ·
+                Floor <?= htmlspecialchars((string)($bk['floor'] ?? '-')) ?>
             </p>
 
             <p style="margin-top:12px">
-                <span class="badge badge-<?= strtolower($booking['status'] ?? 'pending') ?>">
-                    <?= $booking['status'] ?? 'No Booking' ?>
+                <span class="badge badge-<?= htmlspecialchars(strtolower($bk['status'] ?? 'pending')) ?>">
+                    <?= htmlspecialchars($bk['status'] ?? 'No Booking') ?>
                 </span>
             </p>
         </div>
 
-        <div style="text-align:right">
+        <div class="room-card-pricing">
             <div class="room-price">
-                Rp <?= isset($booking['price_per_month']) 
-                    ? number_format($booking['price_per_month'], 0, ',', '.') 
+                Rp <?= isset($bk['price_per_month'])
+                    ? number_format((float)$bk['price_per_month'], 0, ',', '.')
                     : '0' ?>
                 <span>/mo</span>
             </div>
 
             <p style="margin-top:8px; font-size:13px; color:rgba(255,255,255,.6)">
-                📅 <?= $booking['start_date'] ?? '-' ?> → <?= $booking['end_date'] ?? '-' ?>
+                📅 <?= htmlspecialchars($bk['start_date'] ?? '-') ?> → <?= htmlspecialchars($bk['end_date'] ?? '-') ?>
             </p>
         </div>
     </div>
 
-    <div class="grid2">
-
-        <!-- BOOKING DETAILS -->
-        <div class="card">
-            <div class="card-head"><h3>Booking Details</h3></div>
-
-            <div class="info-row">
-                <span>Booking ID</span>
-                <span>#<?= $booking['booking_id'] ?? '-' ?></span>
-            </div>
-
-            <div class="info-row">
-                <span>Room Type</span>
-                <span><?= $booking['room_type'] ?? '-' ?></span>
-            </div>
-
-            <div class="info-row">
-                <span>Floor</span>
-                <span><?= $booking['floor'] ?? '-' ?></span>
-            </div>
-
-            <div class="info-row">
-                <span>Start Date</span>
-                <span><?= $booking['start_date'] ?? '-' ?></span>
-            </div>
-
-            <div class="info-row">
-                <span>End Date</span>
-                <span><?= $booking['end_date'] ?? '-' ?></span>
-            </div>
-
-            <div class="info-row">
-                <span>Deposit</span>
-                <span>
-                    Rp <?= isset($booking['deposit_amount']) 
-                        ? number_format($booking['deposit_amount'], 0, ',', '.') 
-                        : '0' ?>
-                </span>
-            </div>
-
-            <div class="info-row">
-                <span>Status</span>
-                <span><?= $booking['status'] ?? '-' ?></span>
-            </div>
+    <section class="room-gallery-section card">
+        <div class="card-head">
+            <h3>Room photos</h3>
+            <span class="room-gallery-sub">Tap a photo for full details</span>
         </div>
-
-        <!-- PAYMENTS -->
-        <div class="card">
-            <div class="card-head"><h3>Payment History</h3></div>
-
-            <table>
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Amount</th>
-                        <th>Method</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                <?php 
-                if (mysqli_num_rows($payments) > 0):
-                    while ($p = mysqli_fetch_assoc($payments)): ?>
-                    <tr>
-                        <td><?= $p['payment_date'] ?></td>
-                        <td>Rp <?= number_format($p['amount'], 0, ',', '.') ?></td>
-                        <td><?= $p['payment_method'] ?></td>
-                        <td>
-                            <span class="badge badge-<?= strtolower($p['status']) ?>">
-                                <?= $p['status'] ?>
-                            </span>
-                        </td>
-                    </tr>
-                <?php endwhile; else: ?>
-                    <tr>
-                        <td colspan="4" style="text-align:center;">No payment data</td>
-                    </tr>
-                <?php endif; ?>
-                </tbody>
-            </table>
-        </div>
-
-    </div>
-
-    <!-- MAINTENANCE -->
-    <div class="card" style="margin-top:20px">
-        <div class="card-head"><h3>Maintenance History</h3></div>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Issue</th>
-                    <th>Handled By</th>
-                    <th>Cost</th>
-                    <th>Status</th>
-                </tr>
-            </thead>
-
-            <tbody>
-            <?php 
-            if (mysqli_num_rows($maint) > 0):
-                while ($m = mysqli_fetch_assoc($maint)): ?>
-                <tr>
-                    <td><?= $m['request_date'] ?></td>
-                    <td><?= htmlspecialchars($m['issue_description']) ?></td>
-                    <td>
-                        <?= ($m['emp_first'] ?? '-') . ' ' . ($m['emp_last'] ?? '') ?>
-                        <br><small><?= $m['employee_role'] ?? '-' ?></small>
-                    </td>
-                    <td>Rp <?= number_format($m['repair_cost'], 0, ',', '.') ?></td>
-                    <td>
-                        <span class="badge badge-<?= strtolower($m['status']) ?>">
-                            <?= $m['status'] ?>
+        <div class="room-gallery-body">
+            <?php if ($room_gallery && mysqli_num_rows($room_gallery) > 0): ?>
+                <div class="room-gallery-grid">
+                    <?php while ($gr = mysqli_fetch_assoc($room_gallery)):
+                        $modal = [
+                            'room_id'       => (int)$gr['room_id'],
+                            'room_number'   => $gr['room_number'],
+                            'room_type'     => $gr['room_type'],
+                            'floor'         => (int)$gr['floor'],
+                            'price_per_month' => (float)$gr['price_per_month'],
+                            'status'        => $gr['status'],
+                            'building_name' => $gr['building_name'],
+                            'city'          => $gr['city'],
+                            'address'       => $gr['address'],
+                            'photo_path'    => $gr['photo_path'],
+                        ];
+                    ?>
+                    <button type="button" class="room-gallery-tile" onclick='openRoomGalleryModal(<?= json_encode($modal, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>)'>
+                        <span class="room-gallery-img-wrap">
+                            <img src="../<?= htmlspecialchars($gr['photo_path']) ?>" alt="Room <?= htmlspecialchars($gr['room_number']) ?>">
                         </span>
-                    </td>
-                </tr>
-            <?php endwhile; else: ?>
-                <tr>
-                    <td colspan="5" style="text-align:center;">No maintenance history</td>
-                </tr>
+                        <span class="room-gallery-caption"><?= htmlspecialchars($gr['room_number']) ?></span>
+                    </button>
+                    <?php endwhile; ?>
+                </div>
+            <?php else: ?>
+                <p class="room-gallery-empty">No room photos have been added yet. Check back later.</p>
             <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
+        </div>
+    </section>
 
 </div>
+
+<!-- Room detail modal: same layout idea as admin Edit Room, read-only -->
+<div class="td-modal-backdrop" id="roomGalleryModal" aria-hidden="true">
+    <div class="td-room-modal" role="dialog" aria-labelledby="roomModalTitle" aria-modal="true">
+        <div class="td-room-modal-header">
+            <h3 id="roomModalTitle">Room details</h3>
+            <button type="button" class="td-room-modal-close" onclick="closeRoomGalleryModal()" aria-label="Close">✕</button>
+        </div>
+        <div class="td-room-modal-body">
+            <div class="td-form-group">
+                <label>Building</label>
+                <div class="td-readonly" id="rgBuilding"></div>
+            </div>
+            <div class="td-form-group">
+                <label>Address</label>
+                <div class="td-readonly" id="rgAddress"></div>
+            </div>
+            <div class="td-form-row">
+                <div class="td-form-group">
+                    <label>Room number</label>
+                    <div class="td-readonly" id="rgRoomNum"></div>
+                </div>
+                <div class="td-form-group">
+                    <label>Floor</label>
+                    <div class="td-readonly" id="rgFloor"></div>
+                </div>
+            </div>
+            <div class="td-form-group">
+                <label>Room type</label>
+                <div class="td-readonly" id="rgType"></div>
+            </div>
+            <div class="td-form-row">
+                <div class="td-form-group">
+                    <label>Price / month (Rp)</label>
+                    <div class="td-readonly" id="rgPrice"></div>
+                </div>
+                <div class="td-form-group">
+                    <label>Status</label>
+                    <div class="td-readonly" id="rgStatus"></div>
+                </div>
+            </div>
+            <div class="td-form-group td-book-wrap" id="rgBookWrap" hidden>
+                <a class="td-btn-book" id="rgBookLink" href="#">Book room</a>
+            </div>
+            <div class="td-form-group">
+                <label>Room photo</label>
+                <p class="td-readonly-hint">Photo provided by your property manager.</p>
+                <div class="td-readonly-photo-wrap">
+                    <img src="" alt="" id="rgModalImg" class="td-readonly-photo">
+                </div>
+            </div>
+        </div>
+        <div class="td-room-modal-footer">
+            <button type="button" class="td-btn-modal-close" onclick="closeRoomGalleryModal()">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function openRoomGalleryModal(d) {
+    document.getElementById('roomModalTitle').textContent = 'Room details';
+    var bline = (d.building_name || '—') + (d.city ? ' (' + d.city + ')' : '');
+    document.getElementById('rgBuilding').textContent = bline;
+    document.getElementById('rgAddress').textContent = d.address || '—';
+    document.getElementById('rgRoomNum').textContent = d.room_number || '—';
+    document.getElementById('rgFloor').textContent = d.floor != null ? String(d.floor) : '—';
+    document.getElementById('rgType').textContent = d.room_type || '—';
+    document.getElementById('rgPrice').textContent = 'Rp ' + Number(d.price_per_month || 0).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    document.getElementById('rgStatus').textContent = d.status || '—';
+    document.getElementById('rgModalImg').src = '../' + d.photo_path;
+    document.getElementById('rgModalImg').alt = 'Room ' + (d.room_number || '');
+    var bw = document.getElementById('rgBookWrap');
+    var bl = document.getElementById('rgBookLink');
+    if (String(d.status || '').toLowerCase() === 'available' && d.room_id) {
+        bw.hidden = false;
+        bl.href = 'tenant_booking.php?room_id=' + encodeURIComponent(d.room_id);
+    } else {
+        bw.hidden = true;
+        bl.removeAttribute('href');
+    }
+    var m = document.getElementById('roomGalleryModal');
+    m.classList.add('open');
+    m.setAttribute('aria-hidden', 'false');
+}
+function closeRoomGalleryModal() {
+    var m = document.getElementById('roomGalleryModal');
+    m.classList.remove('open');
+    m.setAttribute('aria-hidden', 'true');
+    document.getElementById('rgModalImg').removeAttribute('src');
+    document.getElementById('rgBookWrap').hidden = true;
+}
+document.getElementById('roomGalleryModal').addEventListener('click', function (e) {
+    if (e.target === this) { closeRoomGalleryModal(); }
+});
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeRoomGalleryModal();
+});
+</script>
 
 </body>
 </html>

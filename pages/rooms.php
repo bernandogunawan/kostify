@@ -16,6 +16,61 @@ function adminOwnsBuilding($conn, $building_id, $admin_id) {
     return (bool)$r;
 }
 
+define('ROOM_UPLOAD_DIR', dirname(__DIR__) . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'rooms');
+define('ROOM_UPLOAD_WEB', 'uploads/rooms');
+
+/** Save uploaded room image; returns relative web path or false and sets $error. */
+function saveRoomPhotoUpload($conn, $room_id, $admin_id, &$error) {
+    if (empty($_FILES['room_photo']['name'])) {
+        return null;
+    }
+    if ((int)$_FILES['room_photo']['error'] !== UPLOAD_ERR_OK) {
+        $error = 'Image upload failed (code ' . (int)$_FILES['room_photo']['error'] . ').';
+        return false;
+    }
+    if ((int)$_FILES['room_photo']['size'] > 3 * 1024 * 1024) {
+        $error = 'Image must be 3 MB or smaller.';
+        return false;
+    }
+    $tmp = $_FILES['room_photo']['tmp_name'];
+    if (!is_uploaded_file($tmp)) {
+        $error = 'Invalid upload.';
+        return false;
+    }
+    $finfo = new finfo(FILEINFO_MIME_TYPE);
+    $mime  = $finfo->file($tmp);
+    $extmap = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+    if (!isset($extmap[$mime])) {
+        $error = 'Only JPEG, PNG, or WebP images are allowed.';
+        return false;
+    }
+    $ext = $extmap[$mime];
+    $owns = mysqli_fetch_assoc(mysqli_query($conn, "SELECT r.room_id FROM room r JOIN building b ON r.building_id=b.building_id WHERE r.room_id=" . (int)$room_id . " AND b.admin_id=" . (int)$admin_id));
+    if (!$owns) {
+        $error = 'Unauthorized.';
+        return false;
+    }
+    if (!is_dir(ROOM_UPLOAD_DIR)) {
+        mkdir(ROOM_UPLOAD_DIR, 0755, true);
+    }
+    foreach (glob(ROOM_UPLOAD_DIR . DIRECTORY_SEPARATOR . 'room_' . (int)$room_id . '.*') ?: [] as $old) {
+        @unlink($old);
+    }
+    $basename = 'room_' . (int)$room_id . '.' . $ext;
+    $dest     = ROOM_UPLOAD_DIR . DIRECTORY_SEPARATOR . $basename;
+    if (!move_uploaded_file($tmp, $dest)) {
+        $error = 'Could not save image to disk.';
+        return false;
+    }
+    return ROOM_UPLOAD_WEB . '/' . $basename;
+}
+
+function unlinkRoomPhotoFiles($room_id) {
+    foreach (glob(ROOM_UPLOAD_DIR . DIRECTORY_SEPARATOR . 'room_' . (int)$room_id . '.*') ?: [] as $f) {
+        @unlink($f);
+    }
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
 
@@ -40,9 +95,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             goto done;
         }
 
+        $cur = mysqli_fetch_assoc(mysqli_query($conn, "SELECT r.photo_path FROM room r JOIN building b ON r.building_id=b.building_id WHERE r.room_id=$id AND b.admin_id=$admin_id"));
+        if (!$cur) { $error = 'Room not found.'; goto done; }
+
+        $final_photo = $cur['photo_path'] ?? '';
+        if (!empty($_FILES['room_photo']['name'])) {
+            $saved = saveRoomPhotoUpload($conn, $id, $admin_id, $error);
+            if ($saved === false) { goto done; }
+            if ($saved !== null) { $final_photo = $saved; }
+        }
+        $photo_sql = ($final_photo === '' || $final_photo === null)
+            ? 'NULL'
+            : ("'" . mysqli_real_escape_string($conn, $final_photo) . "'");
+
         mysqli_query($conn, "UPDATE room SET building_id=$building_id,room_number='$room_number',
                              room_type='$room_type',floor=$floor,price_per_month=$price,
-                             status='$status'
+                             status='$status',photo_path=$photo_sql
                              WHERE room_id=$id");
         $success = 'Room updated.';
 
@@ -55,6 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $used = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) as c FROM booking WHERE room_id=$id"))['c'];
         if ($used > 0) { $error = 'Cannot delete: room has ' . $used . ' booking(s).'; goto done; }
 
+        unlinkRoomPhotoFiles($id);
         mysqli_query($conn, "DELETE FROM room WHERE room_id=$id");
         $success = 'Room deleted.';
     }
@@ -160,6 +229,8 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
         .badge-occupied{background:#FEE8ED;color:#8E3F52}
         .badge-maintenance{background:#FFF8E1;color:#F57F17}
         .actions{display:flex;gap:6px}
+        .room-thumb{width:52px;height:40px;object-fit:cover;border-radius:8px;border:1px solid var(--border);background:#FDFAF6}
+        .room-thumb-placeholder{font-size:20px;opacity:.35;text-align:center;line-height:40px}
         .btn-sm{padding:6px 12px;border:none;border-radius:7px;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;white-space:nowrap}
         .btn-sm-edit{background:rgba(181,85,106,.1);color:var(--rose)}.btn-sm-edit:hover{background:var(--rose);color:#fff}
         .btn-sm-delete{background:rgba(198,40,40,.08);color:#C62828}.btn-sm-delete:hover{background:#C62828;color:#fff}
@@ -175,7 +246,12 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
         .form-group{margin-bottom:16px}
         .form-group label{display:block;font-size:11px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
         .form-group input,.form-group select{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--dark);background:#FDFAF6;outline:none;transition:border-color .2s}
+        .form-group input[type=file]{padding:9px;font-size:13px}
         .form-group input:focus,.form-group select:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(181,85,106,.1)}
+        .photo-preview-wrap{margin-top:10px}
+        .photo-preview{max-width:100%;max-height:180px;border-radius:10px;border:1px solid var(--border);display:none}
+        .photo-preview.visible{display:block}
+        .photo-hint{font-size:12px;color:var(--muted);margin-top:6px}
         .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
         .modal-footer{padding:16px 28px 24px;display:flex;gap:10px;justify-content:flex-end}
         .btn-cancel{padding:10px 22px;background:#F0EBE1;border:1.5px solid var(--border);border-radius:9px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer}
@@ -262,7 +338,7 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
     <div class="table-card">
         <div class="table-wrap">
             <table id="roomTable">
-                <thead><tr><th>#</th><th>Room</th><th>Building</th><th>Type</th><th>Floor</th><th>Price / Month</th><th>Status</th><th>Actions</th></tr></thead>
+                <thead><tr><th>#</th><th>Photo</th><th>Room</th><th>Building</th><th>Type</th><th>Floor</th><th>Price / Month</th><th>Status</th><th>Actions</th></tr></thead>
                 <tbody>
                 <?php $i=1; $has_rows=false; while ($r=mysqli_fetch_assoc($rooms)): $has_rows=true; $badge='badge-'.strtolower(str_replace(' ','',$r['status'])); ?>
                 <tr data-room="<?= strtolower($r['room_number']) ?>"
@@ -270,6 +346,13 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
                     data-type="<?= htmlspecialchars($r['room_type']) ?>"
                     data-status="<?= htmlspecialchars($r['status']) ?>">
                     <td style="color:var(--muted)"><?= $i++ ?></td>
+                    <td>
+                        <?php if (!empty($r['photo_path'])): ?>
+                            <img class="room-thumb" src="../<?= htmlspecialchars($r['photo_path']) ?>" alt="">
+                        <?php else: ?>
+                            <div class="room-thumb-placeholder" title="No photo">🖼️</div>
+                        <?php endif ?>
+                    </td>
                     <td><div class="room-num"><?= htmlspecialchars($r['room_number']) ?></div></td>
                     <td><div><?= htmlspecialchars($r['building_name']) ?></div><div class="building-tag"><?= htmlspecialchars($r['city']) ?></div></td>
                     <td><span class="type-chip"><?= htmlspecialchars($r['room_type']) ?></span></td>
@@ -278,13 +361,13 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
                     <td><span class="badge <?= $badge ?>"><?= htmlspecialchars($r['status']) ?></span></td>
                     <td>
                         <div class="actions">
-                            <button class="btn-sm btn-sm-edit" onclick='openEditModal(<?= json_encode(["room_id"=>$r["room_id"],"building_id"=>$r["building_id"],"room_number"=>$r["room_number"],"room_type"=>$r["room_type"],"floor"=>$r["floor"],"price_per_month"=>$r["price_per_month"],"status"=>$r["status"]]) ?>)'>✏️ Edit</button>
+                            <button class="btn-sm btn-sm-edit" onclick='openEditModal(<?= json_encode(["room_id"=>$r["room_id"],"building_id"=>$r["building_id"],"room_number"=>$r["room_number"],"room_type"=>$r["room_type"],"floor"=>$r["floor"],"price_per_month"=>$r["price_per_month"],"status"=>$r["status"],"photo_path"=>$r["photo_path"]??""]) ?>)'>✏️ Edit</button>
                             <button class="btn-sm btn-sm-delete" onclick='openDeleteModal(<?= $r["room_id"] ?>,<?= json_encode($r["room_number"]) ?>)'>🗑️</button>
                         </div>
                     </td>
                 </tr>
                 <?php endwhile ?>
-                <?php if (!$has_rows): ?><tr class="empty-row"><td colspan="8">🚪 No rooms found. Add rooms from the Buildings page.</td></tr><?php endif ?>
+                <?php if (!$has_rows): ?><tr class="empty-row"><td colspan="9">🚪 No rooms found. Add rooms from the Buildings page.</td></tr><?php endif ?>
                 </tbody>
             </table>
         </div>
@@ -296,7 +379,7 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
 <!-- EDIT MODAL -->
 <div class="modal-backdrop" id="editModal"><div class="modal">
     <div class="modal-header"><h3>Edit Room</h3><button class="modal-close" onclick="closeModal('editModal')">✕</button></div>
-    <form method="POST"><input type="hidden" name="action" value="edit"><input type="hidden" name="room_id" id="editRoomId">
+    <form method="POST" enctype="multipart/form-data"><input type="hidden" name="action" value="edit"><input type="hidden" name="room_id" id="editRoomId">
         <div class="modal-body">
             <div class="form-group"><label>Building</label>
                 <select name="building_id" id="editBuildingId" required>
@@ -323,6 +406,12 @@ while ($t = mysqli_fetch_assoc($types_res)) $types[] = $t['room_type'];
                         <option value="Maintenance">Maintenance</option>
                     </select>
                 </div>
+            </div>
+            <div class="form-group">
+                <label>Room photo</label>
+                <input type="file" name="room_photo" id="editRoomPhoto" accept="image/jpeg,image/png,image/webp">
+                <p class="photo-hint">Tenants see this on their dashboard and “My Room” so they know what the space looks like. JPEG, PNG, or WebP, max 3 MB.</p>
+                <div class="photo-preview-wrap"><img class="photo-preview" id="editPhotoPreview" alt="Room preview"></div>
             </div>
         </div>
         <div class="modal-footer"><button type="button" class="btn-cancel" onclick="closeModal('editModal')">Cancel</button><button type="submit" class="btn-submit">💾 Save Changes</button></div>
@@ -351,8 +440,25 @@ function openEditModal(r){
     document.getElementById('editRoomType').value=r.room_type;
     document.getElementById('editPrice').value=r.price_per_month;
     document.getElementById('editStatus').value=r.status;
+    document.getElementById('editRoomPhoto').value='';
+    const prev=document.getElementById('editPhotoPreview');
+    if(r.photo_path){
+        prev.src='../'+r.photo_path;
+        prev.classList.add('visible');
+    }else{
+        prev.removeAttribute('src');
+        prev.classList.remove('visible');
+    }
     openModal('editModal');
 }
+document.getElementById('editRoomPhoto').addEventListener('change',function(){
+    const prev=document.getElementById('editPhotoPreview');
+    const f=this.files&&this.files[0];
+    if(!f){return;}
+    const reader=new FileReader();
+    reader.onload=e=>{prev.src=e.target.result;prev.classList.add('visible');};
+    reader.readAsDataURL(f);
+});
 function openDeleteModal(id,num){document.getElementById('deleteRoomId').value=id;document.getElementById('deleteRoomNum').textContent=num;openModal('deleteModal')}
 function filterTable(){
     const q=document.getElementById('searchInput').value.toLowerCase();

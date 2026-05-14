@@ -10,7 +10,7 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] != 'tenant') {
 $tenant_id = $_SESSION['user_id'];
 
 $bookings_query = mysqli_query($conn, "
-    SELECT b.*, r.room_number, r.room_type, r.floor, r.price_per_month,
+    SELECT b.*, r.room_number, r.room_type, r.floor, r.price_per_month, r.photo_path,
            bu.name as building_name, bu.address, bu.city
     FROM booking b
     JOIN room r      ON b.room_id      = r.room_id
@@ -67,11 +67,16 @@ $bookings_query = mysqli_query($conn, "
             <?php while ($b = mysqli_fetch_assoc($bookings_query)): ?>
                 <div class="booking-section">
                     <div class="booking-header">
-                        <div>
+                        <div class="booking-header-main">
                             <h2>Room <?= htmlspecialchars($b['room_number']) ?> — <?= htmlspecialchars($b['room_type']) ?></h2>
                             <p>🏢 <?= htmlspecialchars($b['building_name']) ?>, <?= htmlspecialchars($b['city']) ?></p>
                         </div>
-                        <div style="text-align:right">
+                        <?php if (!empty($b['photo_path'])): ?>
+                        <div class="booking-header-photo">
+                            <img src="../<?= htmlspecialchars($b['photo_path']) ?>" alt="Room photo">
+                        </div>
+                        <?php endif; ?>
+                        <div class="booking-header-meta">
                             <span class="badge badge-<?= strtolower($b['status']) ?>"><?= htmlspecialchars($b['status']) ?></span>
                             <p style="margin-top:8px">ID: #<?= $b['booking_id'] ?></p>
                         </div>
