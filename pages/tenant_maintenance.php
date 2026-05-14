@@ -3,18 +3,18 @@ session_start();
 require_once '../config/database.php';
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] != 'tenant') {
-    header('Location: ../auth/login.php?mode=tenant');
+    header('Location: ../auth/login.php?mode=tenant'); 
     exit;
 }
 
-$tenant_id = (int)$_SESSION['user_id'];
+$tenant_id = $_SESSION['user_id'];
 $req_success = '';
 $req_error   = '';
 
 /* ── Handle new maintenance request submission ── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submit_request') {
-    $room_id = (int)($_POST['room_id'] ?? 0);
-    $issue   = mysqli_real_escape_string($conn, trim($_POST['issue_description'] ?? ''));
+    $room_id = (int)$_POST['room_id'];
+    $issue   = mysqli_real_escape_string($conn, trim($_POST['issue_description']));
 
     // Verify tenant actually has this room booked (any active booking)
     $owns = mysqli_fetch_assoc(mysqli_query($conn,
@@ -54,7 +54,7 @@ $maint_query = mysqli_query($conn, "
     JOIN building bu ON r.building_id = bu.building_id
     JOIN booking b ON b.room_id = m.room_id
     LEFT JOIN employee e ON m.employee_id = e.employee_id
-    WHERE b.tenant_id = $tenant_id
+    WHERE b.tenant_id = $tenant_id 
       AND m.request_date >= b.start_date
     ORDER BY m.request_date DESC
 ");
@@ -63,7 +63,7 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
     SELECT COUNT(DISTINCT m.maintenance_id) as total
     FROM maintenance m
     JOIN booking b ON b.room_id = m.room_id
-    WHERE b.tenant_id = $tenant_id
+    WHERE b.tenant_id = $tenant_id 
       AND m.request_date >= b.start_date
       AND m.status != 'Completed'
 "))['total'] ?? 0;
@@ -117,7 +117,7 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
         </div>
         <div class="topbar-right">
             <div class="topbar-date">📅 <?= date('D, d M Y') ?></div>
-            <?php if (count($has_active_rooms) > 0): ?>
+            <?php if ($has_active_booking): ?>
             <button class="btn-add" onclick="openRequestModal()">
                 🔧 New Request
             </button>
@@ -130,7 +130,7 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
             <div class="stat-icon" style="background: rgba(181,85,106,.1); color: var(--rose);">🔧</div>
             <div>
                 <div class="stat-label">Pending Issues</div>
-                <div class="stat-value"><?= (int)$active_issues ?></div>
+                <div class="stat-value"><?= $active_issues ?></div>
             </div>
         </div>
     </div>
@@ -212,7 +212,6 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
                         <?php endforeach ?>
                     </select>
                 </div>
-                <?php endif; ?>
 
                 <div class="form-group">
                     <label for="req_issue">Issue Description <span class="req-asterisk">*</span></label>
@@ -223,7 +222,7 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="closeRequestModal()">Cancel</button>
-                <button type="submit" class="btn-submit" <?= count($active_rooms) ? '' : 'disabled' ?>>📨 Submit Request</button>
+                <button type="submit" class="btn-submit">📨 Submit Request</button>
             </div>
         </form>
     </div>
@@ -240,6 +239,7 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeRequestModal();
 });
 
+// Auto-dismiss alerts
 document.querySelectorAll('.alert').forEach(el => setTimeout(() => el.style.opacity = '0', 4000));
 </script>
 
