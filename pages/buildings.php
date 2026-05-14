@@ -10,6 +10,18 @@ $admin_id = (int)$_SESSION['user_id'];
 $success  = '';
 $error    = '';
 
+/** Rooms per new floor: same as floor 1, else max count on any existing floor (capped at 99). */
+function infer_rooms_per_floor(mysqli $conn, int $building_id): int {
+    $rpf_q = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM room WHERE building_id=$building_id AND floor=1"));
+    $n     = (int)($rpf_q['c'] ?? 0);
+    if ($n >= 1) {
+        return min(99, $n);
+    }
+    $rpf2 = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COALESCE(MAX(cnt),0) AS m FROM (SELECT COUNT(*) AS cnt FROM room WHERE building_id=$building_id GROUP BY floor) t"));
+
+    return min(99, max(1, (int)$rpf2['m']));
+}
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $action = $_POST['action'] ?? '';
 
@@ -59,10 +71,72 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $address = mysqli_real_escape_string($conn, $_POST['address']);
         $city    = mysqli_real_escape_string($conn, $_POST['city']);
         $floors  = (int)$_POST['floors'];
-        mysqli_query($conn, "UPDATE building SET name='$name', address='$address', city='$city',
-                             total_floors=$floors
-                             WHERE building_id=$id AND admin_id=$admin_id");
-        $success = 'Building updated successfully.';
+
+        $brow = mysqli_fetch_assoc(mysqli_query($conn, "SELECT building_id, total_floors FROM building WHERE building_id=$id AND admin_id=$admin_id"));
+        if (!$brow) {
+            $error = 'Unauthorized or building not found.';
+            goto done;
+        }
+        $old_floors = (int)$brow['total_floors'];
+        if ($floors < 1 || $floors > 99) {
+            $error = 'Total floors must be between 1 and 99.';
+            goto done;
+        }
+
+        $extra_floors = $floors - $old_floors;
+        $rooms_per_floor = 0;
+        $room_type_esc   = '';
+        $room_price      = 0.0;
+        if ($extra_floors > 0) {
+            $room_count = (int)(mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM room WHERE building_id=$id"))['c'] ?? 0);
+            if ($room_count < 1) {
+                $error = 'Cannot add floors: this building has no rooms yet, so the app cannot copy “rooms per floor” from existing data.';
+                goto done;
+            }
+            $rooms_per_floor = infer_rooms_per_floor($conn, $id);
+            $sample = mysqli_fetch_assoc(mysqli_query($conn, "SELECT room_type, price_per_month FROM room WHERE building_id=$id ORDER BY floor, room_number LIMIT 1"));
+            if (!$sample) {
+                $error = 'Cannot add floors: no sample room found.';
+                goto done;
+            }
+            $room_type_esc = mysqli_real_escape_string($conn, $sample['room_type']);
+            $room_price    = (float)$sample['price_per_month'];
+            if ($room_price < 0) {
+                $room_price = 0;
+            }
+        }
+
+        try {
+            mysqli_begin_transaction($conn);
+
+            mysqli_query($conn, "UPDATE building SET name='$name', address='$address', city='$city',
+                                 total_floors=$floors
+                                 WHERE building_id=$id AND admin_id=$admin_id");
+
+            if ($extra_floors > 0) {
+                for ($floor = $old_floors + 1; $floor <= $floors; $floor++) {
+                    for ($num = 1; $num <= $rooms_per_floor; $num++) {
+                        $room_number = $floor . str_pad((string)$num, 2, '0', STR_PAD_LEFT);
+                        $rn_esc = mysqli_real_escape_string($conn, $room_number);
+                        $dup = mysqli_fetch_assoc(mysqli_query($conn, "SELECT room_id FROM room WHERE building_id=$id AND room_number='$rn_esc' LIMIT 1"));
+                        if ($dup) {
+                            continue;
+                        }
+                        mysqli_query($conn, "INSERT INTO room (building_id,room_number,room_type,floor,price_per_month,status)
+                                             VALUES ($id,'$rn_esc','$room_type_esc',$floor,$room_price,'Available')");
+                    }
+                }
+                $added = ($floors - $old_floors) * $rooms_per_floor;
+                $success = 'Building updated. Added ' . $added . ' new room(s) (' . $rooms_per_floor . ' per new floor, same as your existing pattern).';
+            } else {
+                $success = 'Building updated successfully.';
+            }
+
+            mysqli_commit($conn);
+        } catch (Throwable $e) {
+            mysqli_rollback($conn);
+            $error = 'Failed to update building. Please try again.';
+        }
 
     } elseif ($action == 'delete') {
         $id   = (int)$_POST['building_id'];
@@ -181,6 +255,16 @@ $total_cities    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT
     while ($b = mysqli_fetch_assoc($buildings)):
         $has = true;
         $pct = $b['total_rooms'] > 0 ? round($b['occupied']/$b['total_rooms']*100) : 0;
+        $bid = (int)$b['building_id'];
+        $rpf_q = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(*) AS c FROM room WHERE building_id=$bid AND floor=1"));
+        $default_rpf = (int)($rpf_q['c'] ?? 0);
+        if ($default_rpf < 1) {
+            $rpf2 = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COALESCE(MAX(cnt),0) AS m FROM (SELECT COUNT(*) AS cnt FROM room WHERE building_id=$bid GROUP BY floor) t"));
+            $default_rpf = max(1, (int)($rpf2['m']));
+        }
+        $sample = mysqli_fetch_assoc(mysqli_query($conn, "SELECT room_type, price_per_month FROM room WHERE building_id=$bid ORDER BY floor, room_number LIMIT 1"));
+        $default_rt = $sample['room_type'] ?? 'Single';
+        $default_rp = isset($sample['price_per_month']) ? (float)$sample['price_per_month'] : 0;
     ?>
     <div class="building-card" data-name="<?= strtolower(htmlspecialchars($b['name'])) ?>" data-city="<?= strtolower(htmlspecialchars($b['city'])) ?>">
         <div class="building-card-header">
@@ -199,7 +283,7 @@ $total_cities    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT
         </div>
         <div class="building-card-footer">
             <button class="btn-action btn-view" onclick="window.location.href='rooms.php?building_id=<?= $b['building_id'] ?>'">🚪 Rooms</button>
-            <button class="btn-action btn-edit" onclick='openEditModal(<?= $b["building_id"] ?>,<?= json_encode($b["name"]) ?>,<?= json_encode($b["address"]) ?>,<?= json_encode($b["city"]) ?>,<?= (int)$b["total_floors"] ?>)'>✏️ Edit</button>
+            <button class="btn-action btn-edit" onclick='openEditModal(<?= (int)$b["building_id"] ?>,<?= json_encode($b["name"]) ?>,<?= json_encode($b["address"]) ?>,<?= json_encode($b["city"]) ?>,<?= (int)$b["total_floors"] ?>)'>✏️ Edit</button>
             <button class="btn-action btn-delete" onclick='openDeleteModal(<?= $b["building_id"] ?>,<?= json_encode($b["name"]) ?>)'>🗑️ Delete</button>
         </div>
     </div>
@@ -246,6 +330,7 @@ $total_cities    = mysqli_fetch_assoc(mysqli_query($conn, "SELECT COUNT(DISTINCT
                 <div class="form-group"><label>Total Floors</label><input type="number" name="floors" id="editFloors" min="1" required></div>
             </div>
             <div class="form-group"><label>Address</label><input type="text" name="address" id="editAddress" required></div>
+            <p class="form-hint">If you increase <strong>Total floors</strong>, new rooms are added automatically: same count per new floor as on floor 1 (e.g. 2 rooms/floor → floor 6 gets 601 &amp; 602), with the same room type and price as your first existing room.</p>
         </div>
         <div class="modal-footer"><button type="button" class="btn-cancel" onclick="closeModal('editModal')">Cancel</button><button type="submit" class="btn-submit">💾 Save Changes</button></div>
     </form>
