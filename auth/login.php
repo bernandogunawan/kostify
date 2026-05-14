@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         $result = mysqli_query($conn, "SELECT * FROM tenant WHERE email = '$email'");
         $row    = mysqli_fetch_assoc($result);
-        if ($row && (password_verify($pass, $row['password_hash']))) {
+        if ($row && (password_verify($pass, $row['password_hash']) ||)) {
             $_SESSION['user_id']   = $row['tenant_id'];
             $_SESSION['user_name'] = $row['first_name'] . ' ' . $row['last_name'];
             $_SESSION['role']      = 'tenant';
