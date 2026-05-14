@@ -172,6 +172,7 @@ label {
 input[type=email],
 input[type=password],
 input[type=text],
+input[type=number],
 input[type=date] {
     width: 100%;
     padding: 11px 14px;
@@ -185,6 +186,23 @@ input[type=date] {
     transition: border-color .2s;
     appearance: none;
     -webkit-appearance: none;
+}
+
+/* Register: phone + ID card — same look (width handled by .row2 when paired) */
+input.auth-input-digits {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+input[type=number]::-webkit-outer-spin-button,
+input[type=number]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 input:focus { border-color: #B5556A; box-shadow: 0 0 0 3px rgba(181,85,106,.1); }
