@@ -16,13 +16,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
     $room_id = (int)($_POST['room_id'] ?? 0);
     $issue   = mysqli_real_escape_string($conn, trim($_POST['issue_description'] ?? ''));
 
+    // Verify tenant actually has this room booked (any active booking)
     $owns = mysqli_fetch_assoc(mysqli_query($conn,
         "SELECT b.room_id FROM booking b
          WHERE b.tenant_id = $tenant_id AND b.room_id = $room_id AND b.status = 'Active' LIMIT 1"));
 
     if (!$owns) {
         $req_error = 'You do not have an active booking for the selected room.';
-    } elseif ($issue === '') {
+    } elseif (empty($issue)) {
         $req_error = 'Please describe the issue.';
     } else {
         mysqli_query($conn,
@@ -32,19 +33,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
     }
 }
 
-/* ── All active bookings (tenant may have more than one room) ── */
-$active_rooms = [];
-$ar_res = mysqli_query($conn, "
-    SELECT b.room_id, r.room_number, bu.name AS building_name, b.start_date, b.end_date
-    FROM booking b
-    JOIN room r ON b.room_id = r.room_id
-    JOIN building bu ON r.building_id = bu.building_id
-    WHERE b.tenant_id = $tenant_id AND b.status = 'Active'
-    ORDER BY bu.name, r.room_number
-");
-while ($ar_res && ($row = mysqli_fetch_assoc($ar_res))) {
-    $active_rooms[] = $row;
-}
+/* ── Fetch ALL rooms this tenant has booked (Active bookings) ── */
+$booked_rooms_res = mysqli_query($conn,
+    "SELECT b.booking_id, b.room_id, r.room_number, bu.name as building_name
+     FROM booking b
+     JOIN room r ON b.room_id = r.room_id
+     JOIN building bu ON r.building_id = bu.building_id
+     WHERE b.tenant_id = $tenant_id AND b.status = 'Active'
+     ORDER BY bu.name, r.room_number");
+$booked_rooms = [];
+while ($br = mysqli_fetch_assoc($booked_rooms_res)) $booked_rooms[] = $br;
+$has_active_booking = count($booked_rooms) > 0;
 
 /* ── Fetch maintenance history ── */
 $maint_query = mysqli_query($conn, "
@@ -118,7 +117,7 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
         </div>
         <div class="topbar-right">
             <div class="topbar-date">📅 <?= date('D, d M Y') ?></div>
-            <?php if (count($active_rooms) > 0): ?>
+            <?php if (count($has_active_rooms) > 0): ?>
             <button class="btn-add" onclick="openRequestModal()">
                 🔧 New Request
             </button>
@@ -202,17 +201,16 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
         <form method="POST">
             <input type="hidden" name="action" value="submit_request">
             <div class="modal-body">
-                <?php if (count($active_rooms) > 0): ?>
                 <div class="form-group">
-                    <label for="maint_room_id">Which room?</label>
-                    <select name="room_id" id="maint_room_id" class="maint-room-select" required>
-                        <?php foreach ($active_rooms as $ar): ?>
-                            <option value="<?= (int)$ar['room_id'] ?>">
-                                Room <?= htmlspecialchars($ar['room_number']) ?> — <?= htmlspecialchars($ar['building_name']) ?>
-                            </option>
-                        <?php endforeach; ?>
+                    <label for="req_room">Select Room <span class="req-asterisk">*</span></label>
+                    <select name="room_id" id="req_room" required>
+                        <option value="">— Choose a room —</option>
+                        <?php foreach ($booked_rooms as $br): ?>
+                        <option value="<?= $br['room_id'] ?>">
+                            🚪 Room <?= htmlspecialchars($br['room_number']) ?> &nbsp;·&nbsp; 🏢 <?= htmlspecialchars($br['building_name']) ?>
+                        </option>
+                        <?php endforeach ?>
                     </select>
-                    <p class="maint-room-hint">Choose the room that needs maintenance.</p>
                 </div>
                 <?php endif; ?>
 
