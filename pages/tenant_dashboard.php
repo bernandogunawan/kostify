@@ -140,6 +140,7 @@ if ($room_gallery_res) {
             </p>
         </div>
     </div>
+
     <?php else: ?>
     <div class="no-booking">
         <h2 style="color:var(--dark);font-family:'Playfair Display',serif;font-size:22px;margin-bottom:8px">No active booking yet</h2>
@@ -173,8 +174,20 @@ if ($room_gallery_res) {
                     <button type="button" class="room-gallery-tile" onclick='openRoomGalleryModal(<?= json_encode($modal, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE) ?>)'>
                         <span class="room-gallery-img-wrap">
                             <img src="../<?= htmlspecialchars($gr['photo_resolved']) ?>" alt="Room <?= htmlspecialchars($gr['room_number']) ?>">
+                            <?php
+                            $gst_raw = strtolower(trim((string)($gr['status'] ?? '')));
+                            $gst_slug = preg_replace('/[^a-z0-9]+/', '', $gst_raw);
+                            if (!in_array($gst_slug, ['available', 'occupied', 'maintenance'], true)) {
+                                $gst_slug = 'other';
+                            }
+                            ?>
+                            <span class="room-gallery-pill room-gallery-pill--status room-gallery-pill--<?= htmlspecialchars($gst_slug) ?>" aria-hidden="true"><?= htmlspecialchars($gr['status']) ?></span>
+                            <span class="room-gallery-pill room-gallery-pill--building" aria-hidden="true"><?= htmlspecialchars($gr['building_name']) ?></span>
                         </span>
-                        <span class="room-gallery-caption"><?= htmlspecialchars($gr['room_number']) ?></span>
+                        <span class="room-gallery-meta">
+                            <span class="room-gallery-subline">Room <?= htmlspecialchars($gr['room_number']) ?></span>
+                            <span class="room-gallery-price">Rp <?= number_format((float)$gr['price_per_month'], 0, ',', '.') ?><span class="room-gallery-price-suffix">/mo</span></span>
+                        </span>
                     </button>
                     <?php endforeach; ?>
                 </div>

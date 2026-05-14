@@ -267,7 +267,6 @@ $css_v = (int)@filemtime(__DIR__ . '/../css/tenant_booking.css');
                             <option value="" disabled selected>Select method…</option>
                             <option value="Bank Transfer">Bank Transfer</option>
                             <option value="E-Wallet">E-Wallet</option>
-                            <option value="Cash">Cash</option>
                         </select>
                     </div>
 

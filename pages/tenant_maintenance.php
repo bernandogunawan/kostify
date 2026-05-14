@@ -233,7 +233,6 @@ document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeRequestModal();
 });
 
-// Auto-dismiss alerts
 document.querySelectorAll('.alert').forEach(el => setTimeout(() => el.style.opacity = '0', 4000));
 </script>
 
