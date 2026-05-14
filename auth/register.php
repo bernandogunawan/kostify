@@ -65,6 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             elseif (!ctype_digit($id_card)) {
                 $error = 'ID card must contain numbers only.';
+            } elseif (strlen($id_card) !== 16) {
+                $error = 'NIK must be exactly 16 digits.';
             }
 
             // DATE CHECK
@@ -187,7 +189,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                     <label>ID Card Number</label>
                     <input type="text" name="id_card_number" class="auth-input-digits"
                         inputmode="numeric"
-                        pattern="[0-9]+"
+                        pattern="[0-9]{16}"
+                        minlength="16"
+                        maxlength="16"
+                        title="NIK must be exactly 16 digits"
                         placeholder="16-digit NIK"
                         required
                         value="<?= htmlspecialchars($_POST['id_card_number'] ?? '') ?>">

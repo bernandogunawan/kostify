@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once '../config/database.php';
+require_once __DIR__ . '/../includes/room_photo.php';
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] != 'tenant') {
     header('Location: ../auth/login.php?mode=tenant'); 
@@ -10,7 +11,7 @@ if (!isset($_SESSION['role']) || $_SESSION['role'] != 'tenant') {
 $tenant_id = $_SESSION['user_id'];
 
 $bookings_query = mysqli_query($conn, "
-    SELECT b.*, r.room_number, r.room_type, r.floor, r.price_per_month, r.photo_path,
+    SELECT b.*, r.room_number, r.room_type, r.floor, r.price_per_month, IFNULL(r.photo_path,'') AS photo_path,
            bu.name as building_name, bu.address, bu.city
     FROM booking b
     JOIN room r      ON b.room_id      = r.room_id
@@ -71,9 +72,12 @@ $bookings_query = mysqli_query($conn, "
                             <h2>Room <?= htmlspecialchars($b['room_number']) ?> — <?= htmlspecialchars($b['room_type']) ?></h2>
                             <p>🏢 <?= htmlspecialchars($b['building_name']) ?>, <?= htmlspecialchars($b['city']) ?></p>
                         </div>
-                        <?php if (!empty($b['photo_path'])): ?>
+                        <?php
+                        $room_img = kostify_resolve_room_photo((string) $b['room_number'], $b['photo_path'] ?? '');
+                        if ($room_img !== ''):
+                        ?>
                         <div class="booking-header-photo">
-                            <img src="../<?= htmlspecialchars($b['photo_path']) ?>" alt="Room photo">
+                            <img src="../<?= htmlspecialchars($room_img) ?>" alt="Room photo">
                         </div>
                         <?php endif; ?>
                         <div class="booking-header-meta">
