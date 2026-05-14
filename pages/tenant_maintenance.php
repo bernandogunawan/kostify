@@ -3,27 +3,26 @@ session_start();
 require_once '../config/database.php';
 
 if (!isset($_SESSION['role']) || $_SESSION['role'] != 'tenant') {
-    header('Location: ../auth/login.php?mode=tenant'); 
+    header('Location: ../auth/login.php?mode=tenant');
     exit;
 }
 
-$tenant_id = $_SESSION['user_id'];
+$tenant_id = (int)$_SESSION['user_id'];
 $req_success = '';
 $req_error   = '';
 
 /* ── Handle new maintenance request submission ── */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submit_request') {
-    $room_id = (int)$_POST['room_id'];
-    $issue   = mysqli_real_escape_string($conn, trim($_POST['issue_description']));
+    $room_id = (int)($_POST['room_id'] ?? 0);
+    $issue   = mysqli_real_escape_string($conn, trim($_POST['issue_description'] ?? ''));
 
-    // Verify tenant actually has this room booked
     $owns = mysqli_fetch_assoc(mysqli_query($conn,
         "SELECT b.room_id FROM booking b
          WHERE b.tenant_id = $tenant_id AND b.room_id = $room_id AND b.status = 'Active' LIMIT 1"));
 
     if (!$owns) {
-        $req_error = 'You do not have an active booking for this room.';
-    } elseif (empty($issue)) {
+        $req_error = 'You do not have an active booking for the selected room.';
+    } elseif ($issue === '') {
         $req_error = 'Please describe the issue.';
     } else {
         mysqli_query($conn,
@@ -33,14 +32,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'submi
     }
 }
 
-/* ── Fetch tenant's active booking room ── */
-$active_booking = mysqli_fetch_assoc(mysqli_query($conn,
-    "SELECT b.room_id, r.room_number, bu.name as building_name
-     FROM booking b
-     JOIN room r ON b.room_id = r.room_id
-     JOIN building bu ON r.building_id = bu.building_id
-     WHERE b.tenant_id = $tenant_id AND b.status = 'Active'
-     LIMIT 1"));
+/* ── All active bookings (tenant may have more than one room) ── */
+$active_rooms = [];
+$ar_res = mysqli_query($conn, "
+    SELECT b.room_id, r.room_number, bu.name AS building_name, b.start_date, b.end_date
+    FROM booking b
+    JOIN room r ON b.room_id = r.room_id
+    JOIN building bu ON r.building_id = bu.building_id
+    WHERE b.tenant_id = $tenant_id AND b.status = 'Active'
+    ORDER BY bu.name, r.room_number
+");
+while ($ar_res && ($row = mysqli_fetch_assoc($ar_res))) {
+    $active_rooms[] = $row;
+}
 
 /* ── Fetch maintenance history ── */
 $maint_query = mysqli_query($conn, "
@@ -51,7 +55,7 @@ $maint_query = mysqli_query($conn, "
     JOIN building bu ON r.building_id = bu.building_id
     JOIN booking b ON b.room_id = m.room_id
     LEFT JOIN employee e ON m.employee_id = e.employee_id
-    WHERE b.tenant_id = $tenant_id 
+    WHERE b.tenant_id = $tenant_id
       AND m.request_date >= b.start_date
     ORDER BY m.request_date DESC
 ");
@@ -60,7 +64,7 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
     SELECT COUNT(DISTINCT m.maintenance_id) as total
     FROM maintenance m
     JOIN booking b ON b.room_id = m.room_id
-    WHERE b.tenant_id = $tenant_id 
+    WHERE b.tenant_id = $tenant_id
       AND m.request_date >= b.start_date
       AND m.status != 'Completed'
 "))['total'] ?? 0;
@@ -114,7 +118,7 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
         </div>
         <div class="topbar-right">
             <div class="topbar-date">📅 <?= date('D, d M Y') ?></div>
-            <?php if ($active_booking): ?>
+            <?php if (count($active_rooms) > 0): ?>
             <button class="btn-add" onclick="openRequestModal()">
                 🔧 New Request
             </button>
@@ -127,7 +131,7 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
             <div class="stat-icon" style="background: rgba(181,85,106,.1); color: var(--rose);">🔧</div>
             <div>
                 <div class="stat-label">Pending Issues</div>
-                <div class="stat-value"><?= $active_issues ?></div>
+                <div class="stat-value"><?= (int)$active_issues ?></div>
             </div>
         </div>
     </div>
@@ -197,15 +201,20 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
         </div>
         <form method="POST">
             <input type="hidden" name="action" value="submit_request">
-            <?php if ($active_booking): ?>
-            <input type="hidden" name="room_id" value="<?= $active_booking['room_id'] ?>">
-            <?php endif; ?>
             <div class="modal-body">
-                <div class="form-room-badge">
-                    🚪 Room <?= htmlspecialchars($active_booking['room_number'] ?? '—') ?>
-                    &nbsp;·&nbsp;
-                    🏢 <?= htmlspecialchars($active_booking['building_name'] ?? '—') ?>
+                <?php if (count($active_rooms) > 0): ?>
+                <div class="form-group">
+                    <label for="maint_room_id">Which room?</label>
+                    <select name="room_id" id="maint_room_id" class="maint-room-select" required>
+                        <?php foreach ($active_rooms as $ar): ?>
+                            <option value="<?= (int)$ar['room_id'] ?>">
+                                Room <?= htmlspecialchars($ar['room_number']) ?> — <?= htmlspecialchars($ar['building_name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <p class="maint-room-hint">Choose the room that needs maintenance.</p>
                 </div>
+                <?php endif; ?>
 
                 <div class="form-group">
                     <label for="req_issue">Issue Description <span class="req-asterisk">*</span></label>
@@ -216,7 +225,7 @@ $active_issues = mysqli_fetch_assoc(mysqli_query($conn, "
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="closeRequestModal()">Cancel</button>
-                <button type="submit" class="btn-submit">📨 Submit Request</button>
+                <button type="submit" class="btn-submit" <?= count($active_rooms) ? '' : 'disabled' ?>>📨 Submit Request</button>
             </div>
         </form>
     </div>

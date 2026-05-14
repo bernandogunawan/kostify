@@ -399,6 +399,13 @@ body {
     background: #fff;
 }
 
+.maint-room-hint {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-top: 4px;
+}
+
 /* ── MODAL BUTTONS ── */
 .btn-cancel {
     padding: 10px 20px;

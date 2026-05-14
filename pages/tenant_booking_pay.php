@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['finalize'])) {
         $error = 'Please confirm that you have completed the payment.';
     } elseif (!in_array($months, [6, 12], true)) {
         $error = 'Invalid booking length.';
-    } elseif (!in_array($pm, ['Bank Transfer', 'E-Wallet', 'Cash'], true)) {
+    } elseif (!in_array($pm, ['Bank Transfer', 'E-Wallet'], true)) {
         $error = 'Please choose a payment method.';
     } else {
         $sd = tb_parse_start($start);
@@ -272,7 +272,7 @@ $css_v = (int)@filemtime(__DIR__ . '/../css/tenant_booking.css');
 
                     <div class="tb-pay-row">
                         <input type="checkbox" name="paid_ack" id="paid_ack" value="yes">
-                        <label for="paid_ack">I have completed the payment (e.g. transfer or cash to the property).</label>
+                        <label for="paid_ack">I have completed the payment (bank transfer or e-wallet to the property).</label>
                     </div>
                     <p class="tb-hint">Your booking and payment will be recorded for the property manager. This cannot be undone from here.</p>
                 </div>

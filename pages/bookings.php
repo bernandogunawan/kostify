@@ -17,15 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = 'Booking create/update/delete is disabled for admin.';
     }
 }
-done:
 
-$filter_status = mysqli_real_escape_string($conn, $_GET['status'] ?? '');
-$where_status  = $filter_status ? "AND b.status='$filter_status'" : '';
+$where_status = "AND b.status='Active'";
 
 $bookings = mysqli_query($conn, "
     SELECT b.*, t.first_name, t.last_name, t.email,
            r.room_number, r.room_type, r.price_per_month,
-           bu.name AS building_name
+           bu.name AS building_name, bu.building_id
     FROM booking b
     JOIN room r      ON b.room_id    = r.room_id
     JOIN building bu ON r.building_id = bu.building_id
@@ -35,17 +33,16 @@ $bookings = mysqli_query($conn, "
 ");
 
 $stats = mysqli_fetch_assoc(mysqli_query($conn, "
-    SELECT COUNT(*) as total,
-           SUM(b.status='Active')    as active,
-           SUM(b.status='Completed') as completed
+    SELECT COUNT(*) as active_only
     FROM booking b JOIN room r ON b.room_id=r.room_id JOIN building bu ON r.building_id=bu.building_id
-    WHERE bu.admin_id=$admin_id
+    WHERE bu.admin_id=$admin_id AND b.status='Active'
 "));
 
-// Only rooms from admin's buildings
-$rooms_res = mysqli_query($conn, "SELECT r.room_id,r.room_number,r.room_type,r.floor,b.name AS building_name FROM room r JOIN building b ON r.building_id=b.building_id WHERE b.admin_id=$admin_id ORDER BY b.name,r.room_number");
-$rooms_arr = [];
-while ($r = mysqli_fetch_assoc($rooms_res)) $rooms_arr[] = $r;
+$buildings_filter = [];
+$bf = mysqli_query($conn, "SELECT building_id, name FROM building WHERE admin_id=$admin_id ORDER BY name");
+while ($row = mysqli_fetch_assoc($bf)) {
+    $buildings_filter[] = $row;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -78,7 +75,7 @@ while ($r = mysqli_fetch_assoc($rooms_res)) $rooms_arr[] = $r;
 
 <div class="main">
     <div class="topbar">
-        <div><h1>Bookings</h1><p>All reservations in your properties</p></div>
+        <div><h1>Bookings</h1><p>Active leases on your properties</p></div>
         <div class="topbar-right">
             <div class="topbar-date">📅 <?= date('D, d M Y') ?></div>
         </div>
@@ -87,23 +84,20 @@ while ($r = mysqli_fetch_assoc($rooms_res)) $rooms_arr[] = $r;
     <?php if ($success): ?><div class="alert alert-success">✅ <?= htmlspecialchars($success) ?></div><?php endif ?>
     <?php if ($error):   ?><div class="alert alert-error">⚠️ <?= htmlspecialchars($error) ?></div><?php endif ?>
 
-    <div class="status-strip">
-        <?php
-        $cur = $_GET['status'] ?? '';
-        foreach ([['','All',$stats['total'],''],['Active','Active',$stats['active']??0,'s-active'],['Completed','Completed',$stats['completed']??0,'s-completed']] as [$sv,$sl,$sn,$sc]):
-        ?>
-        <a href="bookings.php<?= $sv?'?status='.$sv:'' ?>" class="strip-card <?= $cur===$sv?'active-filter':'' ?>">
-            <div class="strip-num <?= $sc ?>"><?= $sn ?></div>
-            <div class="strip-label"><?= $sl ?></div>
-        </a>
-        <?php endforeach ?>
+    <div class="status-strip status-strip--single">
+        <div class="strip-card strip-card--static">
+            <div class="strip-num s-active"><?= (int)($stats['active_only'] ?? 0) ?></div>
+            <div class="strip-label">Active bookings</div>
+        </div>
     </div>
 
     <div class="toolbar">
         <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="Search tenant or room…" oninput="filterTable()"></div>
         <select class="filter-select" id="buildingFilter" onchange="filterTable()">
             <option value="">All Buildings</option>
-            <?php foreach ($rooms_arr as $r): ?><option value="<?= htmlspecialchars($r['building_name']) ?>"><?= htmlspecialchars($r['building_name']) ?></option><?php endforeach ?>
+            <?php foreach ($buildings_filter as $bfrow): ?>
+                <option value="<?= (int)$bfrow['building_id'] ?>"><?= htmlspecialchars($bfrow['name']) ?></option>
+            <?php endforeach ?>
         </select>
     </div>
 
@@ -116,7 +110,7 @@ while ($r = mysqli_fetch_assoc($rooms_res)) $rooms_arr[] = $r;
                     $d1=new DateTime($b['start_date']); $d2=new DateTime($b['end_date']); $dur=$d1->diff($d2)->days.'d';
                     $bc='badge-'.strtolower($b['status']);
                 ?>
-                <tr data-search="<?= strtolower($b['first_name'].' '.$b['last_name'].' '.$b['room_number']) ?>" data-building="<?= strtolower(htmlspecialchars($b['building_name'])) ?>">
+                <tr data-search="<?= strtolower($b['first_name'].' '.$b['last_name'].' '.$b['room_number']) ?>" data-building-id="<?= (int)$b['building_id'] ?>">
                     <td><span class="booking-id">#<?= $b['booking_id'] ?></span></td>
                     <td><div style="font-weight:600"><?= htmlspecialchars($b['first_name'].' '.$b['last_name']) ?></div><div style="font-size:11px;color:var(--muted)"><?= htmlspecialchars($b['email']) ?></div></td>
                     <td><div style="font-weight:600">Room <?= htmlspecialchars($b['room_number']) ?> <span style="color:var(--muted);font-weight:400">(<?= $b['room_type'] ?>)</span></div><div style="font-size:11px;color:var(--muted)"><?= htmlspecialchars($b['building_name']) ?></div></td>
@@ -126,7 +120,7 @@ while ($r = mysqli_fetch_assoc($rooms_res)) $rooms_arr[] = $r;
                     <td><span class="badge <?= $bc ?>"><?= $b['status'] ?></span></td>
                 </tr>
                 <?php endwhile ?>
-                <?php if (!$has_rows): ?><tr class="empty-row"><td colspan="7">📋 No bookings found for your properties.</td></tr><?php endif ?>
+                <?php if (!$has_rows): ?><tr class="empty-row"><td colspan="7">📋 No active bookings.</td></tr><?php endif ?>
                 </tbody>
             </table>
         </div>
@@ -141,10 +135,14 @@ document.querySelectorAll('.modal-backdrop').forEach(bd=>bd.addEventListener('cl
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open'))});
 function filterTable(){
     const q=document.getElementById('searchInput').value.toLowerCase();
-    const bld=document.getElementById('buildingFilter').value.toLowerCase();
+    const bld=document.getElementById('buildingFilter').value;
     const rows=document.querySelectorAll('#bookingTable tbody tr:not(.empty-row)');
     let shown=0;
-    rows.forEach(row=>{const match=(!q||row.dataset.search.includes(q))&&(!bld||row.dataset.building===bld);row.style.display=match?'':'none';if(match)shown++});
+    rows.forEach(row=>{
+        const match=(!q||row.dataset.search.includes(q))&&(!bld||row.dataset.buildingId===bld);
+        row.style.display=match?'':'none';
+        if(match)shown++;
+    });
     document.getElementById('rowCount').textContent=`Showing ${shown} booking(s)`;
 }
 document.querySelectorAll('.alert').forEach(el=>setTimeout(()=>el.style.display='none',4000));

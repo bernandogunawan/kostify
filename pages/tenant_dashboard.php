@@ -17,7 +17,8 @@ $booking = mysqli_fetch_assoc(mysqli_query($conn, "
     JOIN room r      ON b.room_id      = r.room_id
     JOIN building bu ON r.building_id  = bu.building_id
     WHERE b.tenant_id = $tenant_id
-    ORDER BY b.booking_date DESC, b.booking_id DESC LIMIT 1
+    ORDER BY CASE WHEN b.status = 'Active' THEN 0 ELSE 1 END, b.booking_date DESC, b.booking_id DESC
+    LIMIT 1
 "));
 $bk = is_array($booking) ? $booking : [];
 $has_booking = isset($bk['room_number']) && $bk['room_number'] !== '';

@@ -408,6 +408,7 @@ td {
 }
 
 .room-gallery-img-wrap {
+    position: relative;
     aspect-ratio: 1 / 1;
     overflow: hidden;
     background: #E8E3DB;
@@ -420,16 +421,93 @@ td {
     display: block;
 }
 
-.room-gallery-caption {
-    display: block;
-    padding: 6px 8px;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--dark);
-    line-height: 1.25;
+/* Pill-shaped labels on the photo (not buttons; clicks go to the tile) */
+.room-gallery-pill {
+    position: absolute;
+    pointer-events: none;
+    z-index: 2;
+    border-radius: 999px;
+    font-family: 'DM Sans', sans-serif;
+    box-shadow: 0 2px 12px rgba(28, 20, 16, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+}
+
+.room-gallery-pill--status {
+    top: 7px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: calc(100% - 14px);
+    padding: 5px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.room-gallery-pill--status.room-gallery-pill--available {
+    background: rgba(232, 245, 233, 0.95);
+    color: #1B5E20;
+}
+
+.room-gallery-pill--status.room-gallery-pill--occupied {
+    background: rgba(253, 232, 236, 0.95);
+    color: #6D1F35;
+}
+
+.room-gallery-pill--status.room-gallery-pill--maintenance {
+    background: rgba(255, 248, 225, 0.95);
+    color: #E65100;
+}
+
+.room-gallery-pill--status.room-gallery-pill--other {
+    background: rgba(240, 235, 225, 0.95);
+    color: var(--dark);
+}
+
+.room-gallery-pill--building {
+    bottom: 6px;
+    left: 6px;
+    right: 6px;
+    padding: 7px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+    color: var(--dark);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(6px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.room-gallery-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px 10px;
+    text-align: left;
+}
+
+.room-gallery-subline {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+}
+
+.room-gallery-price {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--dark);
+    margin-top: 2px;
+}
+
+.room-gallery-price-suffix {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
 }
 
 .room-gallery-empty {

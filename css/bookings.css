@@ -86,3 +86,6 @@ tbody tr:hover{background:#FDFAF6}
 .delete-warning p{font-size:14px;color:var(--muted);line-height:1.6}
 .delete-warning strong{color:var(--dark)}
 .empty-row td{text-align:center;padding:48px;color:var(--muted);font-size:14px}
+.status-strip--single{margin-bottom:28px}
+.status-strip--single .strip-card--static{flex:0 0 auto;min-width:170px;cursor:default;pointer-events:none}
+.status-strip--single .strip-card--static:hover{transform:none;box-shadow:none}

@@ -17,9 +17,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $error = 'Payment create/update/delete is disabled for admin.';
     }
 }
-done:
 
 $filter_status = mysqli_real_escape_string($conn, $_GET['status'] ?? '');
+if ($filter_status !== '' && $filter_status !== 'Completed') {
+    $filter_status = '';
+}
 $where_status  = $filter_status ? "AND p.status='$filter_status'" : '';
 
 // ── All payments for admin's buildings ──
@@ -94,10 +96,8 @@ $stats = mysqli_fetch_assoc(mysqli_query($conn, "
         <div class="toolbar">
             <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" id="searchInput" placeholder="Search tenant or room…" oninput="filterPayments()"></div>
             <select class="filter-select" id="statusFilter" onchange="filterPayments()">
-                <option value="">All Status</option>
+                <option value="">All payments</option>
                 <option value="Completed" <?= $filter_status=='Completed'?'selected':'' ?>>Completed</option>
-                <option value="Failed"    <?= $filter_status=='Failed'?'selected':'' ?>>Failed</option>
-                <option value="Refunded"  <?= $filter_status=='Refunded'?'selected':'' ?>>Refunded</option>
             </select>
         </div>
         <div class="table-card">
